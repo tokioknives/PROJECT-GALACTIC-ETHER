@@ -36,8 +36,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:4;back
 
 <div class="hud">
   <div class="title">&#9733; CYBER GALAXY <span id="count"></span> <span id="where" style="color:var(--pink)"></span></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <input type="text" id="searchInput" placeholder="Search stars..." style="background:#05010f; color:var(--fg); border:2px solid var(--neon); padding:8px 10px; font:inherit; width:140px; box-shadow:0 0 10px #00ffd555">
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button id="findBtn">&#128125; FIND A BEING</button>
     <button class="pink" id="plantBtn">+ PLANT A STAR</button>
     <a class="btn" id="tip" target="_blank" rel="noopener">&hearts; TIP</a>
@@ -93,7 +92,7 @@ function interpret(text){
   const hue = sum % 360;
   const pal = [0,1,2,3].map(i => `hsl(${(hue + i*55 + r()*20)%360} 100% ${45 + i*8}%)`);
   const N = 24, grid = [], dens = 0.38 + Math.min(words,60)/150;
-  for let y=0;y<N;y++=[];for(let x=0;x<N/2;x++){
+  for (let y=0;y<N;y++){grid[y]=[];for(let x=0;x<N/2;x++){
     const d = Math.hypot(x-N/2+.5, y-N/2+.5)/(N/2);
     grid[y][x] = r() < dens*(1.15-d) ? 1+Math.floor(r()*4) : 0;
   }}
@@ -152,7 +151,7 @@ function rebuild(remote){
 const RAW=`https://raw.githubusercontent.com/${CFG.REPO}/${CFG.BRANCH}/`;
 function loadUniverse(){ // everyone's stars live in the repo; reload every 5 min so new ones appear
   fetch(RAW+"universe.json").then(r=>r.ok?r.json():Promise.reject()).catch(()=>fetch("universe.json").then(r=>r.json()))
-    .then(j=>{window._remote=j;rebuild(j);goHash()}).catch(()=>{ rebuild([]); });
+    .then(j=>{window._remote=j;rebuild(j);goHash()}).catch(()=>{});
 }
 loadUniverse(); setInterval(loadUniverse,300000);
 rebuild([]);
@@ -396,23 +395,6 @@ function sing(o){try{
     g.gain.setValueAtTime(.0001,s); g.gain.exponentialRampToValueAtTime(.08,s+.05); g.gain.exponentialRampToValueAtTime(.0001,s+1.6);
     os.connect(g).connect(AC.destination); os.start(s); os.stop(s+1.7)});
 }catch(e){}}
-
-/* ---------- SEARCH BAR LOGIC ---------- */
-$("searchInput").addEventListener("input", (e) => {
-  const query = e.target.value.toLowerCase().trim();
-  if (!query) return;
-  const allThings = [...objs, ...cst, ...BEINGS];
-  const found = allThings.find(o => {
-    const text = o.text || (o.species ? o.species + " " + o.name : "") || "";
-    return text.toLowerCase().includes(query);
-  });
-  if (found) {
-    cam.tx = found.x; 
-    cam.ty = found.y;
-  }
-});
-
-/* ---------- BUTTON CLICKS ---------- */
 $("findBtn").onclick=()=>{const b=BEINGS[Math.floor(Math.random()*BEINGS.length)];cam.tx=b.x;cam.ty=b.y};
 $("cclose").onclick=()=>{$("card").classList.remove("on");try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}};
 $("enter").onclick=()=>$("intro").classList.remove("on");
