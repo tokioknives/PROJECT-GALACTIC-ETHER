@@ -135,9 +135,11 @@ function themeOf(text){let b=-1,best=0;THEMES.forEach(([n,re],i)=>{const c=(text
 function place(o){
   const a=interpret(o.text), r=rngFrom(a.seed ^ 0x9e3779b9), th=themeOf(o.text);
   let x,y;
-  if(th<0){const ang=r()*Math.PI*2,d=1100+r()*500;x=Math.cos(ang)*d;y=Math.sin(ang)*d}
+  const bg=o.being!=null?BEINGS[o.being]:null;
+  if(bg){const ang=r()*Math.PI*2,d=Math.sqrt(r())*320;x=bg.hx+Math.cos(ang)*d;y=bg.hy+Math.sin(ang)*d}
+  else if(th<0){const ang=r()*Math.PI*2,d=1100+r()*500;x=Math.cos(ang)*d;y=Math.sin(ang)*d}
   else{const c=RC(th),ang=r()*Math.PI*2,d=Math.sqrt(r())*260;x=c.x+Math.cos(ang)*d;y=c.y+Math.sin(ang)*d}
-  return Object.assign({}, o, a, {x,y,region:th<0?"Strange Frontier":THEMES[th][0],sp:.2+r()*.6,ph:r()*6.28});
+  return Object.assign({}, o, a, {x,y,creature:bg||undefined,region:bg?bg.name+"'s garden":th<0?"Strange Frontier":THEMES[th][0],sp:.2+r()*.6,ph:r()*6.28});
 }
 function rebuild(remote){
   const seen = new Set(), all = [];
@@ -277,7 +279,7 @@ function lite(seed){const r=rngFrom(seed),hue=r()*360;
   return{seed,type:TYPES[seed%5],pal:[0,1,2,3].map(i=>`hsl(${(hue+i*55)%360} 100% ${45+i*8}%)`),sp:.2+r()*.6,ph:r()*6.28}}
 function tick(){ // beings plant stars on their own, same for every visitor, no storage needed
   const k=Math.floor((Date.now()/1000-EPOCH0)/EP)+3; if(k===cstK)return; cstK=k; cst=[];
-  for(const b of BEINGS)for(let n=Math.max(0,k-1500);n<k;n++){
+  for(const b of BEINGS)for(let n=Math.max(0,k-40);n<k;n++){
     const o=lite(hash(b.id+":"+n)),p=bpos(b,n*EP,false);
     o.x=p.x;o.y=p.y;o.creature=b;o.n=n;o.t=new Date((EPOCH0+n*EP)*1000).toISOString().slice(0,10);
     o.name=b.name+"'s star #"+n;cst.push(o);
@@ -354,14 +356,14 @@ function aiArt(o,text){
 }
 function openCard(o){
   current=o; const isB=o.kind==="being";
-  const text=isB?genText(o.seed+Math.floor(Date.now()/600000)):(o.creature?genText(o.seed):o.text);
-  drawSprite($("spr"),(isB||!o.creature)?o:interpret(text));
+  const text=isB?genText(o.seed+Math.floor(Date.now()/600000)):(o.creature&&!o.text?genText(o.seed):o.text);
+  drawSprite($("spr"),(isB||o.grid)?o:interpret(text));
   $("cname").textContent=o.name;
   $("cmeta").textContent=isB?o.species.toUpperCase()+" · cyber being · has planted "+cst.filter(s=>s.creature===o).length+" stars"
     :o.type.toUpperCase()+(o.creature?" · planted by "+o.creature.name+" the "+o.creature.species:" · "+o.region+" · born "+(o.t||"")+" · named by the universe")+" · "+(o.t||"");
   $("ctext").textContent=isB?'"'+text+'"':text; $("cstat").textContent="";
   $("share").style.display=(!isB&&!o.creature&&getLocal().some(s=>s.text===o.text))?"":"none";
-  o.key=isB?"b="+o.id:o.creature?"c="+o.creature.id+"."+o.n:"s="+o.seed.toString(36);
+  o.key=isB?"b="+o.id:o.creature&&!o.text?"c="+o.creature.id+"."+o.n:"s="+o.seed.toString(36);
   try{history.replaceState(null,"","#"+o.key)}catch(e){}
   $("card").classList.add("on"); aiArt(o,text); sing(o);
 }
