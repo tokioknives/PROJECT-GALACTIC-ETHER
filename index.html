@@ -45,10 +45,11 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:4;back
 </div>
 <div class="hint">drag to travel · click a glowing object to read its story</div>
 
+<!-- BULLETPROOF ENTER BUTTON -->
 <div class="overlay on" id="intro"><div class="box">
   <h1>Are you ready to enter the first cyberspace galactic system?</h1>
   <p>Every star here was born from words.</p>
-  <button id="enter">&gt; ENTER &lt;</button>
+  <button id="enter" onclick="document.getElementById('intro').classList.remove('on')">&gt; ENTER &lt;</button>
 </div></div>
 
 <div class="overlay" id="plant"><div class="box">
@@ -127,122 +128,3 @@ const THEMES=[
  ["Dream Drift",/dream|sleep|night|moon|sky|float|imagine|surreal|fantasy|nightmare/gi],
  ["Hope Harbor",/hope|light|begin|heal|grow|future|brave|smile|joy|happy|new/gi],
  ["Fear Fields",/fear|afraid|dark|anxious|panic|scared|monster|shadow|danger|haunt/gi],
- ["Home Haven",/home|mother|father|mom|dad|family|child|friend|garden|river|tree|sea|ocean|mountain|nature/gi],
- ["Wonder Wake",/star|universe|space|god|time|infinite|code|machine|robot|science|why|mystery/gi],
- ["Fury Flats",/anger|angry|rage|hate|fight|burn|war|revenge|furious|break/gi]
-];
-const RC=i=>{const a=i/8*Math.PI*2;return{x:Math.cos(a)*520,y:Math.sin(a)*520}};
-function themeOf(text){let b=-1,best=0;THEMES.forEach(([n,re],i)=>{const c=(text.match(re)||[]).length;if(c>best){best=c;b=i}});return b}
-function place(o){
-  const a=interpret(o.text), r=rngFrom(a.seed ^ 0x9e3779b9), th=themeOf(o.text);
-  let x,y;
-  const bg=o.being!=null?BEINGS[o.being]:null;
-  if(bg){const ang=r()*Math.PI*2,d=Math.sqrt(r())*320;x=bg.hx+Math.cos(ang)*d;y=bg.hy+Math.sin(ang)*d}
-  else if(th<0){const ang=r()*Math.PI*2,d=1100+r()*500;x=Math.cos(ang)*d;y=Math.sin(ang)*d}
-  else{const c=RC(th),ang=r()*Math.PI*2,d=Math.sqrt(r())*260;x=c.x+Math.cos(ang)*d;y=c.y+Math.sin(ang)*d}
-  return Object.assign({}, o, a, {x,y,creature:bg||undefined,region:bg?bg.name+"'s garden":th<0?"Strange Frontier":THEMES[th][0],sp:.2+r()*.6,ph:r()*6.28});
-}
-function rebuild(remote){
-  const seen = new Set(), all = [];
-  for (const o of [...SEEDS, ...(remote||window._remote||[]), ...getLocal()]){
-    if (!o.text || seen.has(o.text)) continue; seen.add(o.text); all.push(place(o));
-  }
-  objs = all; $("count").textContent = "· " + objs.length + " objects";
-}
-const RAW=`https://raw.githubusercontent.com/${CFG.REPO}/${CFG.BRANCH}/`;
-function loadUniverse(){ // everyone's stars live in the repo; reload every 5 min so new ones appear
-  fetch(RAW+"universe.json").then(r=>r.ok?r.json():Promise.reject()).catch(()=>fetch("universe.json").then(r=>r.json()))
-    .then(j=>{window._remote=j;rebuild(j);goHash()}).catch(()=>{});
-}
-loadUniverse(); setInterval(loadUniverse,300000);
-rebuild([]);
-
-/* ---------- canvas / camera ---------- */
-const cv = $("u"), ctx = cv.getContext("2d");
-const PX = 3; let W, H;
-function resize(){W=Math.ceil(innerWidth/PX);H=Math.ceil(innerHeight/PX);cv.width=W;cv.height=H}
-addEventListener("resize", resize); resize();
-const cam = {x:0, y:0, tx:null, ty:null};
-
-function glow(x,y,r,col){ctx.fillStyle=col;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++)if(dx*dx+dy*dy<=r*r)ctx.fillRect(x+dx,y+dy,1,1)}
-
-/* ambient endless sky: stars are born, shine, go supernova, and are reborn */
-function ambient(t){
-  const layers = [[0.25,40],[0.55,56],[1,72]];
-  layers.forEach(([f,cs],li)=>{
-    const ox = cam.x*f, oy = cam.y*f;
-    const x0 = Math.floor((ox-W/2)/cs), x1 = Math.floor((ox+W/2)/cs);
-    const y0 = Math.floor((oy-H/2)/cs), y1 = Math.floor((oy+H/2)/cs);
-    for (let cx=x0;cx<=x1;cx++) for (let cy=y0;cy<=y1;cy++){
-      const r = rngFrom(hash(cx+","+cy+","+li)), n = 1 + Math.floor(r()*2);
-      for (let i=0;i<n;i++){
-        const sx = Math.round((cx+r())*cs - ox + W/2), sy = Math.round((cy+r())*cs - oy + H/2);
-        const period = 180 + r()*420, off = r()*period;
-        const age = (t + off) / period, cyc = Math.floor(age), ph = age - cyc;
-        const hue = Math.floor(rngFrom(hash(cx+","+cy+","+li+","+i+","+cyc))()*360);
-        if (ph < .12){ glow(sx,sy,0,`hsl(${hue} 100% 80%)`); }            // birth
-        else if (ph > .94){ const k=Math.round((ph-.94)*50); glow(sx,sy,k,`hsl(${hue} 100% ${90-k*10}% / .8)`); } // supernova
-        else {
-          const tw = .6 + .4*Math.sin(t*3 + off);
-          ctx.fillStyle = `hsl(${hue} 100% ${55+25*tw}%)`; ctx.fillRect(sx,sy,1,1);
-          if (li===2 && r()>.5){ctx.fillStyle=`hsl(${hue} 100% 70% / .5)`;ctx.fillRect(sx-1,sy,1,1);ctx.fillRect(sx+1,sy,1,1);ctx.fillRect(sx,sy-1,1,1);ctx.fillRect(sx,sy+1,1,1)}
-        }
-      }
-    }
-  });
-  // far nebula clouds (dithered bits)
-  const f=.2, cs=200, ox=cam.x*f, oy=cam.y*f;
-  for (let cx=Math.floor((ox-W/2)/cs)-1;cx<=Math.floor((ox+W/2)/cs);cx++)
-  for (let cy=Math.floor((oy-H/2)/cs)-1;cy<=Math.floor((oy+H/2)/cs);cy++){
-    const r = rngFrom(hash("n"+cx+","+cy)); if (r()>.45) continue;
-    const mx=(cx+r())*cs-ox+W/2, my=(cy+r())*cs-oy+H/2, hue=Math.floor(r()*360);
-    for (let i=0;i<90;i++){
-      const a=r()*6.28, d=Math.pow(r(),1.6)*60;
-      const x=Math.round(mx+Math.cos(a)*d*1.4), y=Math.round(my+Math.sin(a)*d*.8);
-      if ((x+y)%2) continue;
-      ctx.fillStyle=`hsl(${hue} 90% 45% / ${.35 - d/220})`; ctx.fillRect(x,y,2,2);
-    }
-  }
-}
-
-function pos(o,t){
-  if (o.type==="comet") return {x:o.x+Math.cos(t*.05*o.sp+o.ph)*160, y:o.y+Math.sin(t*.05*o.sp+o.ph)*90};
-  return {x:o.x, y:o.y};
-}
-function drawObj(o,t){
-  const p = pos(o,t), x = Math.round(p.x-cam.x+W/2), y = Math.round(p.y-cam.y+H/2);
-  if (x<-40||y<-40||x>W+40||y>H+40) return;
-  const c1 = o.pal[1], c2 = o.pal[3], pulse = 1 + Math.sin(t*2*o.sp+o.ph)*.4;
-  if (o.type==="star"){
-    glow(x,y,Math.round(5*pulse),o.pal[0].replace(")"," / .25)"));
-    glow(x,y,2,c2);
-    for (let i=1;i<=7*pulse;i++){ctx.fillStyle=c1;ctx.fillRect(x+i,y,1,1);ctx.fillRect(x-i,y,1,1);ctx.fillRect(x,y+i,1,1);ctx.fillRect(x,y-i,1,1)}
-  } else if (o.type==="planet"){
-    glow(x,y,6,c1);
-    for (let dy=-6;dy<=6;dy++) if (dy%3===0){ctx.fillStyle=o.pal[2];for(let dx=-6;dx<=6;dx++)if(dx*dx+dy*dy<=36)ctx.fillRect(x+dx,y+dy,1,1)}
-    ctx.fillStyle=c2; for (let a=0;a<6.28;a+=.08){ctx.fillRect(Math.round(x+Math.cos(a)*11),Math.round(y+Math.sin(a)*3.5),1,1)}
-  } else if (o.type==="comet"){
-    const q = pos(o,t-1.5), dx=p.x-q.x, dy=p.y-q.y, l=Math.hypot(dx,dy)||1;
-    for (let i=1;i<22;i++){ctx.fillStyle=o.pal[i%3].replace(")",` / ${1-i/22})`);ctx.fillRect(Math.round(x-dx/l*i),Math.round(y-dy/l*i),2,2)}
-    glow(x,y,3,c2);
-  } else if (o.type==="galaxy"){
-    glow(x,y,3,c2);
-    for (let arm=0;arm<2;arm++) for (let i=0;i<60;i++){
-      const a = i*.22 + arm*Math.PI + t*.15*o.sp, d = 2 + i*.35;
-      ctx.fillStyle = o.pal[(i+arm)%4]; ctx.fillRect(Math.round(x+Math.cos(a)*d),Math.round(y+Math.sin(a)*d*.6),1,1);
-    }
-  } else {
-    const r = rngFrom(o.seed);
-    for (let i=0;i<120;i++){
-      const a=r()*6.28, d=Math.pow(r(),.8)*(16+Math.sin(t+o.ph)*2);
-      const px=Math.round(x+Math.cos(a)*d*1.3), py=Math.round(y+Math.sin(a)*d*.8);
-      ctx.fillStyle=o.pal[Math.floor(r()*4)].replace(")",` / ${.9-d/22})`); ctx.fillRect(px,py,2,2);
-    }
-  }
-}
-
-function frame(ms){
-  const t = ms/1000;
-  if (cam.tx!==null){
-    cam.x += (cam.tx-cam.x)*.06; cam.y += (cam.ty-cam.y)*.06;
-    if (Math.hypot(cam.tx-cam.x,cam.ty-
