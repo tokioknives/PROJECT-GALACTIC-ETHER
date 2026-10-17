@@ -3,172 +3,417 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CYBER GALAXY · GONZO ETHER ENGINE</title>
+<title>Cyber Galaxy · a universe made of bits</title>
 <style>
-:root{--bg:#030008;--fg:#00ffcc;--neon:#00ffd5;--pink:#ff0077;--acid:#ccff00;--card:#0b021a}
+:root{--bg:#05010f;--fg:#e8d9ff;--neon:#00ffd5;--pink:#ff2bd6;--card:#12072a}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:"Courier New",monospace;overflow:hidden;user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:"Courier New",monospace;overflow:hidden}
 canvas#u{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;cursor:grab;touch-action:none}
-.hud{position:fixed;left:0;right:0;top:0;padding:12px 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;pointer-events:none;z-index:3}
+.hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;pointer-events:none}
 .hud>*{pointer-events:auto}
-.title{color:var(--neon);text-shadow:0 0 10px var(--neon);font-size:14px;letter-spacing:2px;font-weight:bold}
-button,.btn{font:inherit;background:rgba(5,1,15,0.9);color:var(--neon);border:2px solid var(--neon);padding:8px 12px;cursor:pointer;font-size:12px;box-shadow:0 0 10px rgba(0,255,213,0.3)}
+.title{color:var(--neon);text-shadow:0 0 8px var(--neon);font-size:14px;letter-spacing:2px}
+button,.btn{font:inherit;background:transparent;color:var(--neon);border:2px solid var(--neon);padding:8px 12px;cursor:pointer;text-decoration:none;font-size:13px;box-shadow:0 0 10px #00ffd555}
 button:hover,.btn:hover{background:var(--neon);color:#000}
-.pink{color:var(--pink);border-color:var(--pink);box-shadow:0 0 10px rgba(255,0,119,0.3)}
+.pink{color:var(--pink);border-color:var(--pink);box-shadow:0 0 10px #ff2bd655}
 .pink:hover{background:var(--pink);color:#000}
-.acid{color:var(--acid);border-color:var(--acid);box-shadow:0 0 10px rgba(204,255,0,0.3)}
-.acid:hover{background:var(--acid);color:#000}
-.overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,0,8,0.9);padding:16px;z-index:10}
+.overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#05010fdd;padding:16px;z-index:5}
 .overlay.on{display:flex}
-.box{background:var(--card);border:2px solid var(--pink);box-shadow:0 0 30px rgba(255,0,119,0.5);max-width:460px;width:100%;padding:20px;max-height:90vh;overflow:auto}
+.box{background:var(--card);border:2px solid var(--pink);box-shadow:0 0 24px #ff2bd677;max-width:460px;width:100%;padding:18px;max-height:90vh;overflow:auto}
 .box h2{margin:0 0 10px;color:var(--pink);font-size:18px}
-textarea{width:100%;height:120px;background:#05010f;color:var(--acid);border:2px solid var(--neon);font:inherit;padding:8px;resize:none}
+textarea{width:100%;height:140px;background:#05010f;color:var(--fg);border:2px solid var(--neon);font:inherit;padding:8px}
 .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+#intro .box{text-align:center;border-color:var(--neon);box-shadow:0 0 30px #00ffd577}
+#intro h1{color:var(--neon);font-size:20px;line-height:1.4;text-shadow:0 0 10px var(--neon)}
 #spr{width:192px;height:192px;image-rendering:pixelated;border:2px solid var(--neon);display:block;margin:0 auto 12px;background:#000}
-.meta{color:var(--neon);font-size:11px;margin-bottom:6px}
-#ctext{white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.5;background:rgba(0,0,0,0.4);padding:8px;border-left:3px solid var(--acid)}
-.hint{position:fixed;bottom:12px;left:0;right:0;text-align:center;font-size:11px;opacity:0.7;pointer-events:none;color:var(--acid)}
+.meta{color:var(--neon);font-size:12px;margin-bottom:8px}
+#ctext{white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.5}
+.hint{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);left:0;right:0;text-align:center;font-size:11px;opacity:.6;pointer-events:none}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:4;background:repeating-linear-gradient(0deg,#0000 0 2px,#0003 2px 3px)}
 </style>
 </head>
 <body>
 <canvas id="u"></canvas>
+
 <div class="hud">
-  <div class="title">&#9733; GALACTIC ETHER <span id="count"></span></div>
-  <div style="display:flex;gap:8px">
-    <button id="findBtn">&#128125; TRACK ENTITY</button>
-    <button class="pink" id="plantBtn">+ PLANT STAR</button>
+  <div class="title">&#9733; CYBER GALAXY <span id="count"></span> <span id="where" style="color:var(--pink)"></span></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button id="findBtn">&#128125; FIND A BEING</button>
+    <button class="pink" id="plantBtn">+ PLANT A STAR</button>
+    <a class="btn" id="tip" target="_blank" rel="noopener">&hearts; TIP</a>
   </div>
 </div>
-<div class="hint">DRAG TO NAVIGATE · CLICK OBJECTS TO OPEN TRANSMISSION</div>
+<div class="hint">drag to travel · click a glowing object to read its story</div>
 
-<div class="overlay on" id="intro"><div class="box" style="text-align:center;border-color:var(--neon)">
-  <h2 style="color:var(--neon)">PROJECT GALACTIC ETHER</h2>
-  <p style="font-size:13px">The local browser matrix is active. Step into the electric void.</p>
-  <button id="enter" class="acid" style="width:100%;margin-top:10px">&gt; INITIALIZE SYSTEM &lt;</button>
+<div class="overlay on" id="intro"><div class="box">
+  <h1>Are you ready to enter the first cyberspace galactic system?</h1>
+  <p>Every star here was born from words.</p>
+  <button id="enter">&gt; ENTER &lt;</button>
 </div></div>
 
 <div class="overlay" id="plant"><div class="box">
-  <h2>Feed the Ethernet</h2>
-  <p style="font-size:12px">Type your diary page, poem, or chaos manifesto. The local engine will materialize it.</p>
-  <textarea id="txt" placeholder="Write into the dark..."></textarea>
-  <div class="row"><button class="pink" id="go">BIRTH STAR</button><button id="cancel1">CANCEL</button></div>
+  <h2>Feed the universe</h2>
+  <p style="font-size:13px">Paste a poem, a diary page, a dream, anything. The universe will paint its own interpretation and plant it as a new object forever. (Your words are sent to an image AI service to paint it.)</p>
+  <textarea id="txt" maxlength="1500" placeholder="write or paste here..."></textarea>
+  <div class="row"><button class="pink" id="go">BIRTH IT</button><button id="cancel1">CANCEL</button></div>
 </div></div>
 
 <div class="overlay" id="card"><div class="box">
   <canvas id="spr" width="192" height="192"></canvas>
   <h2 id="cname"></h2>
   <div class="meta" id="cmeta"></div>
+  <div class="meta" id="cstat" style="opacity:.7"></div>
   <div id="ctext"></div>
-  <div class="row" id="crow"><button id="cclose" class="acid" style="width:100%">CLOSE TRANSMISSION</button></div>
+  <div class="row" id="crow"><button id="share" class="pink">SHARE TO THE UNIVERSE</button><button id="link">COPY LINK</button><button id="cclose">CLOSE</button></div>
 </div></div>
 
 <script>
-const $=id=>document.getElementById(id);
+/* ============ CONFIG: edit these two lines ============ */
+const CFG = {
+  REPO: "YOURUSER/cyber-galaxy",          // your GitHub repo, "user/repo"
+  BRANCH: "main",                         // the branch the stars are saved on
+  TIP_URL: "https://ko-fi.com/yourname",  // your tip link
+  // AI painter. {prompt} and {seed} get filled in. Set to "" to use bit-sprites only.
+  IMAGE_URL: "https://image.pollinations.ai/prompt/{prompt}?width=512&height=512&seed={seed}&nologo=true"
+};
+/* ======================================================== */
+
+/* ---------- tiny helpers ---------- */
+const $ = id => document.getElementById(id);
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function rngFrom(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-const TYPES=["star","planet","comet","galaxy","pulsar"];
+const TYPES = ["star","planet","comet","galaxy","nebula"];
+$("tip").href = CFG.TIP_URL;
 
+/* ---------- the "AI interpretation" (swap this for a real image model later) ---------- */
 function interpret(text){
-  const seed=hash(text), r=rngFrom(seed);
-  let sum=0; for(const c of text) sum+=c.charCodeAt(0);
-  const hue=sum%360, pal=[0,1,2,3].map(i=>`hsl(${(hue+i*55)%360} 100% ${50+i*10}%)`);
-  const N=24, grid=[];
-  forlet y=0;y<N;y++=[];forlet x=0;x<N/2;x++[x]=r()<0.4?1+Math.floor(r()*4):0}}
-  const A=["VEX","LUM","KRY","NYX","SYN","PYR"], B=["IVEX","ORA","ETH","ARIA","ONYX"];
-  const name=A[seed%A.length]+B[(seed>>>3)%B.length]+"-"+((seed>>>6)%99+1);
-  return {seed, type:TYPES[seed%TYPES.length], hue, grid, pal, name};
+  const seed = hash(text), r = rngFrom(seed);
+  const words = text.trim().split(/\s+/).length;
+  let sum = 0; for (const c of text) sum += c.charCodeAt(0);
+  const hue = sum % 360;
+  const pal = [0,1,2,3].map(i => `hsl(${(hue + i*55 + r()*20)%360} 100% ${45 + i*8}%)`);
+  const N = 24, grid = [], dens = 0.38 + Math.min(words,60)/150;
+  for (let y=0;y<N;y++){grid[y]=[];for(let x=0;x<N/2;x++){
+    const d = Math.hypot(x-N/2+.5, y-N/2+.5)/(N/2);
+    grid[y][x] = r() < dens*(1.15-d) ? 1+Math.floor(r()*4) : 0;
+  }}
+  const A=["Zor","Vex","Lum","Kry","Nyx","Orb","Quo","Syn","Xal","Pyr","Mir","Aeon"];
+  const B=["ivex","ora","ulon","eth","aria","onyx","ium","ael","yrix","omar"];
+  const name = A[seed%A.length] + B[(seed>>>5)%B.length] + "-" + ((seed>>>9)%99+1);
+  return { seed, type: TYPES[seed % 5], hue, grid, pal, name };
 }
-
 function drawSprite(cv, art){
-  const c=cv.getContext("2d"); c.clearRect(0,0,192,192);
-  for(let y=0;y<24;y++)for(let x=0;x<12;x++){
-    const v=art.grid[y][x]; if(!v)continue;
-    c.fillStyle=art.pal[v-1]; c.fillRect(x*8,y*8,8,8); c.fillRect((23-x)*8,y*8,8,8);
+  const c = cv.getContext("2d"); c.clearRect(0,0,192,192);
+  for (let y=0;y<24;y++) for (let x=0;x<12;x++){
+    const v = art.grid[y][x]; if(!v) continue;
+    c.fillStyle = art.pal[v-1];
+    c.fillRect(x*8,y*8,8,8); c.fillRect((23-x)*8,y*8,8,8);
   }
 }
 
-let objs=[];
-const SEEDS=[
-  {text:"The first spark in the local matrix.", t:"2026-01-01"},
-  {text:"Static whispering through empty fiber channels.", t:"2026-01-02"}
+/* ---------- data: seeds + repo file + this visitor's stars ---------- */
+let objs = [];
+const SEEDS = [
+  {text:"The first light ever to leave this place.", t:"2026-01-01"},
+  {text:"I wrote my name in the dark and the dark wrote back.", t:"2026-01-02"},
+  {text:"Neon rain on a planet nobody mapped.", t:"2026-01-03"}
 ];
-function getLocal(){try{return JSON.parse(localStorage.getItem("cg_local_stars")||"[]")}catch(e){return[]}}
-function setLocal(a){try{localStorage.setItem("cg_local_stars",JSON.stringify(a))}catch(e){}}
-
+function getLocal(){try{return JSON.parse(localStorage.getItem("cg_stars")||"[]")}catch(e){return[]}}
+function setLocal(a){try{localStorage.setItem("cg_stars",JSON.stringify(a))}catch(e){}}
+/* stars gather by meaning: each feeling has its own region of the universe */
+const THEMES=[
+ ["Heartlands",/love|heart|kiss|miss|together|hug|crush|romance|beloved|forever/gi],
+ ["Grief Reef",/grief|loss|lost|death|died|goodbye|funeral|mourn|gone|cry|tears|alone|lonely/gi],
+ ["Dream Drift",/dream|sleep|night|moon|sky|float|imagine|surreal|fantasy|nightmare/gi],
+ ["Hope Harbor",/hope|light|begin|heal|grow|future|brave|smile|joy|happy|new/gi],
+ ["Fear Fields",/fear|afraid|dark|anxious|panic|scared|monster|shadow|danger|haunt/gi],
+ ["Home Haven",/home|mother|father|mom|dad|family|child|friend|garden|river|tree|sea|ocean|mountain|nature/gi],
+ ["Wonder Wake",/star|universe|space|god|time|infinite|code|machine|robot|science|why|mystery/gi],
+ ["Fury Flats",/anger|angry|rage|hate|fight|burn|war|revenge|furious|break/gi]
+];
+const RC=i=>{const a=i/8*Math.PI*2;return{x:Math.cos(a)*520,y:Math.sin(a)*520}};
+function themeOf(text){let b=-1,best=0;THEMES.forEach(([n,re],i)=>{const c=(text.match(re)||[]).length;if(c>best){best=c;b=i}});return b}
 function place(o){
-  const a=interpret(o.text), r=rngFrom(a.seed);
-  const ang=r()*Math.PI*2, d=200+r()*600;
-  return Object.assign({}, o, a, {x:Math.cos(ang)*d, y:Math.sin(ang)*d, sp:0.3+r()*0.5, ph:r()*6.28});
+  const a=interpret(o.text), r=rngFrom(a.seed ^ 0x9e3779b9), th=themeOf(o.text);
+  let x,y;
+  const bg=o.being!=null?BEINGS[o.being]:null;
+  if(bg){const ang=r()*Math.PI*2,d=Math.sqrt(r())*320;x=bg.hx+Math.cos(ang)*d;y=bg.hy+Math.sin(ang)*d}
+  else if(th<0){const ang=r()*Math.PI*2,d=1100+r()*500;x=Math.cos(ang)*d;y=Math.sin(ang)*d}
+  else{const c=RC(th),ang=r()*Math.PI*2,d=Math.sqrt(r())*260;x=c.x+Math.cos(ang)*d;y=c.y+Math.sin(ang)*d}
+  return Object.assign({}, o, a, {x,y,creature:bg||undefined,region:bg?bg.name+"'s garden":th<0?"Strange Frontier":THEMES[th][0],sp:.2+r()*.6,ph:r()*6.28});
 }
-
-function rebuild(){
-  const seen=new Set(), all=[];
-  for(const o of [...SEEDS, ...getLocal()]){
-    if(!o.text||seen.has(o.text))continue; seen.add(o.text); all.push(place(o));
+function rebuild(remote){
+  const seen = new Set(), all = [];
+  for (const o of [...SEEDS, ...(remote||window._remote||[]), ...getLocal()]){
+    if (!o.text || seen.has(o.text)) continue; seen.add(o.text); all.push(place(o));
   }
-  objs=all; $("count").textContent="· "+objs.length+" stars";
+  objs = all; $("count").textContent = "· " + objs.length + " objects";
+}
+const RAW=`https://raw.githubusercontent.com/${CFG.REPO}/${CFG.BRANCH}/`;
+function loadUniverse(){ // everyone's stars live in the repo; reload every 5 min so new ones appear
+  fetch(RAW+"universe.json").then(r=>r.ok?r.json():Promise.reject()).catch(()=>fetch("universe.json").then(r=>r.json()))
+    .then(j=>{window._remote=j;rebuild(j);goHash()}).catch(()=>{});
+}
+loadUniverse(); setInterval(loadUniverse,300000);
+rebuild([]);
+
+/* ---------- canvas / camera ---------- */
+const cv = $("u"), ctx = cv.getContext("2d");
+const PX = 3; let W, H;
+function resize(){W=Math.ceil(innerWidth/PX);H=Math.ceil(innerHeight/PX);cv.width=W;cv.height=H}
+addEventListener("resize", resize); resize();
+const cam = {x:0, y:0, tx:null, ty:null};
+
+function glow(x,y,r,col){ctx.fillStyle=col;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++)if(dx*dx+dy*dy<=r*r)ctx.fillRect(x+dx,y+dy,1,1)}
+
+/* ambient endless sky: stars are born, shine, go supernova, and are reborn */
+function ambient(t){
+  const layers = [[0.25,40],[0.55,56],[1,72]];
+  layers.forEach(([f,cs],li)=>{
+    const ox = cam.x*f, oy = cam.y*f;
+    const x0 = Math.floor((ox-W/2)/cs), x1 = Math.floor((ox+W/2)/cs);
+    const y0 = Math.floor((oy-H/2)/cs), y1 = Math.floor((oy+H/2)/cs);
+    for (let cx=x0;cx<=x1;cx++) for (let cy=y0;cy<=y1;cy++){
+      const r = rngFrom(hash(cx+","+cy+","+li)), n = 1 + Math.floor(r()*2);
+      for (let i=0;i<n;i++){
+        const sx = Math.round((cx+r())*cs - ox + W/2), sy = Math.round((cy+r())*cs - oy + H/2);
+        const period = 180 + r()*420, off = r()*period;
+        const age = (t + off) / period, cyc = Math.floor(age), ph = age - cyc;
+        const hue = Math.floor(rngFrom(hash(cx+","+cy+","+li+","+i+","+cyc))()*360);
+        if (ph < .12){ glow(sx,sy,0,`hsl(${hue} 100% 80%)`); }            // birth
+        else if (ph > .94){ const k=Math.round((ph-.94)*50); glow(sx,sy,k,`hsl(${hue} 100% ${90-k*10}% / .8)`); } // supernova
+        else {
+          const tw = .6 + .4*Math.sin(t*3 + off);
+          ctx.fillStyle = `hsl(${hue} 100% ${55+25*tw}%)`; ctx.fillRect(sx,sy,1,1);
+          if (li===2 && r()>.5){ctx.fillStyle=`hsl(${hue} 100% 70% / .5)`;ctx.fillRect(sx-1,sy,1,1);ctx.fillRect(sx+1,sy,1,1);ctx.fillRect(sx,sy-1,1,1);ctx.fillRect(sx,sy+1,1,1)}
+        }
+      }
+    }
+  });
+  // far nebula clouds (dithered bits)
+  const f=.2, cs=200, ox=cam.x*f, oy=cam.y*f;
+  for (let cx=Math.floor((ox-W/2)/cs)-1;cx<=Math.floor((ox+W/2)/cs);cx++)
+  for (let cy=Math.floor((oy-H/2)/cs)-1;cy<=Math.floor((oy+H/2)/cs);cy++){
+    const r = rngFrom(hash("n"+cx+","+cy)); if (r()>.45) continue;
+    const mx=(cx+r())*cs-ox+W/2, my=(cy+r())*cs-oy+H/2, hue=Math.floor(r()*360);
+    for (let i=0;i<90;i++){
+      const a=r()*6.28, d=Math.pow(r(),1.6)*60;
+      const x=Math.round(mx+Math.cos(a)*d*1.4), y=Math.round(my+Math.sin(a)*d*.8);
+      if ((x+y)%2) continue;
+      ctx.fillStyle=`hsl(${hue} 90% 45% / ${.35 - d/220})`; ctx.fillRect(x,y,2,2);
+    }
+  }
 }
 
-const cv=$("u"), ctx=cv.getContext("2d");
-const PX=2; let W,H;
-function resize(){W=Math.ceil(innerWidth/PX);H=Math.ceil(innerHeight/PX);cv.width=W;cv.height=H}
-addEventListener("resize",resize); resize();
-const cam={x:0,y:0,tx:null,ty:null};
-
-function glow(x,y,r,col){
-  ctx.fillStyle=col;
-  for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++)if(dx*dx+dy*dy<=r*r)ctx.fillRect(x+dx,y+dy,1,1);
+function pos(o,t){
+  if (o.type==="comet") return {x:o.x+Math.cos(t*.05*o.sp+o.ph)*160, y:o.y+Math.sin(t*.05*o.sp+o.ph)*90};
+  return {x:o.x, y:o.y};
+}
+function drawObj(o,t){
+  const p = pos(o,t), x = Math.round(p.x-cam.x+W/2), y = Math.round(p.y-cam.y+H/2);
+  if (x<-40||y<-40||x>W+40||y>H+40) return;
+  const c1 = o.pal[1], c2 = o.pal[3], pulse = 1 + Math.sin(t*2*o.sp+o.ph)*.4;
+  if (o.type==="star"){
+    glow(x,y,Math.round(5*pulse),o.pal[0].replace(")"," / .25)"));
+    glow(x,y,2,c2);
+    for (let i=1;i<=7*pulse;i++){ctx.fillStyle=c1;ctx.fillRect(x+i,y,1,1);ctx.fillRect(x-i,y,1,1);ctx.fillRect(x,y+i,1,1);ctx.fillRect(x,y-i,1,1)}
+  } else if (o.type==="planet"){
+    glow(x,y,6,c1);
+    for (let dy=-6;dy<=6;dy++) if (dy%3===0){ctx.fillStyle=o.pal[2];for(let dx=-6;dx<=6;dx++)if(dx*dx+dy*dy<=36)ctx.fillRect(x+dx,y+dy,1,1)}
+    ctx.fillStyle=c2; for (let a=0;a<6.28;a+=.08){ctx.fillRect(Math.round(x+Math.cos(a)*11),Math.round(y+Math.sin(a)*3.5),1,1)}
+  } else if (o.type==="comet"){
+    const q = pos(o,t-1.5), dx=p.x-q.x, dy=p.y-q.y, l=Math.hypot(dx,dy)||1;
+    for (let i=1;i<22;i++){ctx.fillStyle=o.pal[i%3].replace(")",` / ${1-i/22})`);ctx.fillRect(Math.round(x-dx/l*i),Math.round(y-dy/l*i),2,2)}
+    glow(x,y,3,c2);
+  } else if (o.type==="galaxy"){
+    glow(x,y,3,c2);
+    for (let arm=0;arm<2;arm++) for (let i=0;i<60;i++){
+      const a = i*.22 + arm*Math.PI + t*.15*o.sp, d = 2 + i*.35;
+      ctx.fillStyle = o.pal[(i+arm)%4]; ctx.fillRect(Math.round(x+Math.cos(a)*d),Math.round(y+Math.sin(a)*d*.6),1,1);
+    }
+  } else {
+    const r = rngFrom(o.seed);
+    for (let i=0;i<120;i++){
+      const a=r()*6.28, d=Math.pow(r(),.8)*(16+Math.sin(t+o.ph)*2);
+      const px=Math.round(x+Math.cos(a)*d*1.3), py=Math.round(y+Math.sin(a)*d*.8);
+      ctx.fillStyle=o.pal[Math.floor(r()*4)].replace(")",` / ${.9-d/22})`); ctx.fillRect(px,py,2,2);
+    }
+  }
 }
 
 function frame(ms){
-  const t=ms/1000;
-  if(cam.tx!==null){cam.x+=(cam.tx-cam.x)*.08;cam.y+=(cam.ty-cam.y)*.08;if(Math.hypot(cam.tx-cam.x,cam.ty-cam.y)<1)cam.tx=null;}
-  ctx.fillStyle="#030008"; ctx.fillRect(0,0,W,H);
-  
-  for(const o of objs){
-    const x=Math.round(o.x-cam.x+W/2), y=Math.round(o.y-cam.y+H/2);
-    if(x<-40||y<-40||x>W+40||y>H+40)continue;
-    glow(x,y,4,o.pal[0].replace(")"," / .3)"));
-    ctx.fillStyle=o.pal[1]; ctx.fillRect(x,y,2,2);
+  const t = ms/1000;
+  if (cam.tx!==null){
+    cam.x += (cam.tx-cam.x)*.06; cam.y += (cam.ty-cam.y)*.06;
+    if (Math.hypot(cam.tx-cam.x,cam.ty-cam.y)<1) cam.tx=null;
+  }
+  ctx.fillStyle="#05010f"; ctx.fillRect(0,0,W,H);
+  tick(); ambient(t); core(t); extras(t);
+  for (const o of objs) drawObj(o,t);
+  for (const o of cst) drawObj(o,t);
+  BEINGS.forEach(b=>drawBeing(b,t)); shoot();
+  if(++fc%30===0){
+    $("count").textContent="· "+(objs.length+cst.length)+" stars · "+BEINGS.length+" beings";
+    let bi=-1,bd=420;THEMES.forEach((_,i)=>{const c=RC(i),d=Math.hypot(c.x-cam.x,c.y-cam.y);if(d<bd){bd=d;bi=i}});
+    $("where").textContent=bi>=0?"· "+THEMES[bi][0]:Math.hypot(cam.x,cam.y)>900?"· Strange Frontier":"· open space";
   }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
+/* ---------- the beings who live here ---------- */
+const EPOCH0=Date.UTC(2026,9,17)/1000, EP=900; // universe birth; every being plants a star every 15 min, forever
+const SPECIES=["Glitchmoth","Pixelwhale","Voidfox","Neonjelly","Bytewyrm","Static Seraph","Lantern Crab","Echo Manta"];
+const W1=["lonely","electric","sleepy","burning","paper","glass","velvet","forgotten","singing","tiny"];
+const W2=["comet","dream","ocean","signal","garden","clock","moth","engine","lullaby","mirror"];
+const W3=["hums","remembers","dissolves","dances","waits","blooms","falls","listens","glows","drifts"];
+const W4=["inside the static","above the sea of bits","behind the last moon","under a pink sun","between two heartbeats","in the quiet code"];
+function genText(seed){const r=rngFrom(seed),p=a=>a[Math.floor(r()*a.length)];
+  return `The ${p(W1)} ${p(W2)} ${p(W3)} ${p(W4)}.\nA ${p(W1)} ${p(W2)} ${p(W3)}.`}
+const BEINGS=[...Array(10)].map((_,i)=>{const a=interpret("being"+i),r=rngFrom(a.seed);
+  return Object.assign(a,{id:i,kind:"being",species:SPECIES[i%8],hx:Math.cos(i*.628)*(150+r()*600),hy:Math.sin(i*.628)*(150+r()*600),R:90+r()*140,sp:.0008+r()*.0007,ph:r()*6.28,x:0,y:0})});
+function bpos(b,ts,live){const w=live?Math.cos(Date.now()/800+b.id)*5:0;
+  const g=1+Math.max(0,ts)/EP/400; // each orbit drifts outward, so the universe keeps expanding
+  return{x:b.hx+Math.cos(ts*b.sp+b.ph)*b.R*g+w,y:b.hy+Math.sin(ts*b.sp*1.3+b.ph)*b.R*.6*g+w*.5}}
+let cst=[],cstK=-1,fc=0,shots=[];
+function lite(seed){const r=rngFrom(seed),hue=r()*360;
+  return{seed,type:TYPES[seed%5],pal:[0,1,2,3].map(i=>`hsl(${(hue+i*55)%360} 100% ${45+i*8}%)`),sp:.2+r()*.6,ph:r()*6.28}}
+function tick(){ // beings plant stars on their own, same for every visitor, no storage needed
+  const k=Math.floor((Date.now()/1000-EPOCH0)/EP)+3; if(k===cstK)return; cstK=k; cst=[];
+  for(const b of BEINGS)for(let n=Math.max(0,k-40);n<k;n++){
+    const o=lite(hash(b.id+":"+n)),p=bpos(b,n*EP,false);
+    o.x=p.x;o.y=p.y;o.creature=b;o.n=n;o.t=new Date((EPOCH0+n*EP)*1000).toISOString().slice(0,10);
+    o.name=b.name+"'s star #"+n;cst.push(o);
+  }
+}
+function drawBeing(b,t){
+  const p=bpos(b,Date.now()/1000-EPOCH0,true);b.x=p.x;b.y=p.y;
+  const x=Math.round(p.x-cam.x+W/2),y=Math.round(p.y-cam.y+H/2);
+  if(x<-30||y<-30||x>W+30||y>H+30)return;
+  glow(x,y,10,b.pal[0].replace(")"," / .12)"));
+  for(let gy=0;gy<12;gy++)for(let gx=0;gx<6;gx++){const v=b.grid[gy*2][gx*2];if(!v)continue;
+    ctx.fillStyle=b.pal[v-1];ctx.fillRect(x-6+gx,y-6+gy,1,1);ctx.fillRect(x+5-gx,y-6+gy,1,1)}
+  ctx.fillStyle=Math.sin(t*3+b.id)>.9?b.pal[1]:"#fff";ctx.fillRect(x-2,y-1,1,1);ctx.fillRect(x+1,y-1,1,1);
+}
+function dots(a,b,col){
+  const x1=a.x-cam.x+W/2,y1=a.y-cam.y+H/2,x2=b.x-cam.x+W/2,y2=b.y-cam.y+H/2;
+  if(Math.max(x1,x2)<0||Math.min(x1,x2)>W||Math.max(y1,y2)<0||Math.min(y1,y2)>H)return;
+  const n=Math.min(Math.hypot(x2-x1,y2-y1)/4,60);ctx.fillStyle=col;
+  for(let i=0;i<n;i++)ctx.fillRect(Math.round(x1+(x2-x1)*i/n),Math.round(y1+(y2-y1)*i/n),1,1);
+}
+function extras(t){ // constellation lines: being trails + nearby human stars
+  for(let i=0;i<cst.length-1;i++)if(cst[i].creature===cst[i+1].creature)dots(cst[i],cst[i+1],cst[i].pal[0].replace(")"," / .3)"));
+  if(objs.length<120)for(let i=0;i<objs.length;i++)for(let j=i+1;j<objs.length;j++)
+    if(Math.hypot(objs[i].x-objs[j].x,objs[i].y-objs[j].y)<260)dots(objs[i],objs[j],"#00ffd540");
+}
+function core(t){ // the Core: a spinning black hole at the center of everything
+  const x=Math.round(-cam.x+W/2),y=Math.round(-cam.y+H/2);if(x<-80||x>W+80||y<-50||y>H+50)return;
+  for(let k=0;k<4;k++)for(let i=0;i<70;i++){const a=i*.09+t*(.4+k*.15),d=14+k*7;
+    ctx.fillStyle=`hsl(${(t*30+k*70+i*3)%360} 100% ${50+k*5}% / ${.9-k*.18})`;
+    ctx.fillRect(Math.round(x+Math.cos(a)*d*1.8),Math.round(y+Math.sin(a)*d*.45),1,1)}
+  glow(x,y,8,"#000");
+}
+function shoot(){
+  if(Math.random()<.012)shots.push({x:Math.random()*W,y:-5,vx:-(1+Math.random()*2),vy:1.5+Math.random()*2,l:0,h:Math.random()*360});
+  shots=shots.filter(s=>s.l<70);
+  for(const s of shots){s.x+=s.vx;s.y+=s.vy;s.l++;for(let i=0;i<10;i++){ctx.fillStyle=`hsl(${s.h} 100% 75% / ${1-i/10})`;ctx.fillRect(Math.round(s.x-s.vx*i),Math.round(s.y-s.vy*i),1,1)}}
+}
+
+/* ---------- input: drag to travel, click to open ---------- */
 let drag=null;
-cv.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,cx:cam.x,cy:cam.y,moved:false};cam.tx=null;cv.setPointerCapture(e.pointerId)});
-cv.addEventListener("pointermove",e=>{if(!drag)return;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>5)drag.moved=true;cam.x=drag.cx-(e.clientX-drag.x)/PX;cam.y=drag.cy-(e.clientY-drag.y)/PX});
+cv.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,cx:cam.x,cy:cam.y,moved:false};cam.tx=null;cv.setPointerCapture(e.pointerId);cv.style.cursor="grabbing"});
+cv.addEventListener("pointermove",e=>{
+  if(!drag)return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  if(Math.abs(dx)+Math.abs(dy)>5) drag.moved=true;
+  cam.x=drag.cx-dx/PX; cam.y=drag.cy-dy/PX;
+});
 cv.addEventListener("pointerup",e=>{
-  if(!drag)return;
+  cv.style.cursor="grab"; if(!drag)return;
   if(!drag.moved){
-    const wx=e.clientX/PX-W/2+cam.x, wy=e.clientY/PX-H/2+cam.y;
-    let best=null,bd=20;
-    for(const o of objs){const d=Math.hypot(o.x-wx,o.y-wy);if(d<bd){bd=d;best=o}}
-    if(best)openCard(best);
+    const wx=e.clientX/PX-W/2+cam.x, wy=e.clientY/PX-H/2+cam.y, t=performance.now()/1000;
+    let best=null,bd=18;
+    for(const o of [...objs,...cst,...BEINGS]){const p=o.kind==="being"?{x:o.x,y:o.y}:pos(o,t),d=Math.hypot(p.x-wx,p.y-wy);if(d<bd){bd=d;best=o}}
+    if(best) openCard(best);
   }
   drag=null;
 });
+addEventListener("keydown",e=>{const s=30;if(e.key==="ArrowLeft")cam.x-=s;if(e.key==="ArrowRight")cam.x+=s;if(e.key==="ArrowUp")cam.y-=s;if(e.key==="ArrowDown")cam.y+=s});
 
-function openCard(o){
-  drawSprite($("spr"),o);
-  $("cname").textContent=o.name;
-  $("cmeta").textContent=o.type.toUpperCase()+" · BORN "+(o.t||"2026");
-  $("ctext").textContent=o.text;
-  $("card").classList.add("on");
+/* ---------- UI ---------- */
+let current=null;
+const imgCache=new Map();
+function aiArt(o,text){
+  const c=$("spr").getContext("2d");
+  const paint=im=>{if(current!==o)return;const s=document.createElement("canvas");s.width=s.height=64;
+    s.getContext("2d").drawImage(im,0,0,64,64);c.imageSmoothingEnabled=false;c.drawImage(s,0,0,192,192);
+    $("cstat").textContent=o.img?"painted by the universe's AI · kept forever":"painted by the universe's AI (preview, share it to keep it forever)";};
+  if(imgCache.has(o.seed))return paint(imgCache.get(o.seed));
+  if(!CFG.IMAGE_URL&&!o.img)return;
+  $("cstat").textContent="the universe is imagining this...";
+  const im=new Image();
+  im.onload=()=>{imgCache.set(o.seed,im);paint(im)};
+  im.onerror=()=>{if(current===o)$("cstat").textContent="(AI painter offline, showing bit-sprite)"};
+  im.src=o.img?RAW+o.img:CFG.IMAGE_URL.replace("{prompt}",encodeURIComponent("pixel art, neon cyberspace dreamscape, glowing colors, retro 8-bit, dark space: "+text.slice(0,200))).replace("{seed}",o.seed%100000);
 }
-
-$("findBtn").onclick=()=>{if(objs.length){const o=objs[Math.floor(Math.random()*objs.length)];cam.tx=o.x;cam.ty=o.y}};
-$("cclose").onclick=()=>$("card").classList.remove("on");
+function openCard(o){
+  current=o; const isB=o.kind==="being";
+  const text=isB?genText(o.seed+Math.floor(Date.now()/600000)):(o.creature&&!o.text?genText(o.seed):o.text);
+  drawSprite($("spr"),(isB||o.grid)?o:interpret(text));
+  $("cname").textContent=o.name;
+  $("cmeta").textContent=isB?o.species.toUpperCase()+" · cyber being · has planted "+cst.filter(s=>s.creature===o).length+" stars"
+    :o.type.toUpperCase()+(o.creature?" · planted by "+o.creature.name+" the "+o.creature.species:" · "+o.region+" · born "+(o.t||"")+" · named by the universe")+" · "+(o.t||"");
+  $("ctext").textContent=isB?'"'+text+'"':text; $("cstat").textContent="";
+  $("share").style.display=(!isB&&!o.creature&&getLocal().some(s=>s.text===o.text))?"":"none";
+  o.key=isB?"b="+o.id:o.creature&&!o.text?"c="+o.creature.id+"."+o.n:"s="+o.seed.toString(36);
+  try{history.replaceState(null,"","#"+o.key)}catch(e){}
+  $("card").classList.add("on"); aiArt(o,text); sing(o);
+}
+/* ---------- shareable links: yoursite/#s=... lands on that exact star ---------- */
+let hashDone=false;
+function goHash(){
+  const m=/^#(s|c|b)=(.+)$/.exec(location.hash); if(!m||hashDone)return;
+  let o=null;
+  if(m[1]==="s")o=objs.find(s=>s.seed.toString(36)===m[2]);
+  else if(m[1]==="c"){const[i,n]=m[2].split(".");o=cst.find(s=>s.creature.id==i&&s.n==n)}
+  else o=BEINGS[+m[2]];
+  if(!o)return; hashDone=true; $("intro").classList.remove("on");
+  cam.x=o.x-80; cam.y=o.y-40; cam.tx=o.x; cam.ty=o.y; setTimeout(()=>openCard(o),1500);
+}
+setTimeout(goHash,1200);
+$("link").onclick=()=>{
+  const u=location.origin+location.pathname+"#"+current.key;
+  (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject())
+    .then(()=>{$("link").textContent="COPIED!";setTimeout(()=>$("link").textContent="COPY LINK",1500)})
+    .catch(()=>prompt("Copy this link:",u));
+};
+/* ---------- every star has its own note (pentatonic, soft) ---------- */
+let AC;
+function sing(o){try{
+  AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  const sc=[0,2,4,7,9,12,14,16], f=220*Math.pow(2,sc[o.seed%8]/12), t0=AC.currentTime;
+  [0,1,2].forEach(i=>{const os=AC.createOscillator(),g=AC.createGain(),s=t0+i*.12;
+    os.type=i?"triangle":"sine"; os.frequency.value=f*(i===2?1.5:1);
+    g.gain.setValueAtTime(.0001,s); g.gain.exponentialRampToValueAtTime(.08,s+.05); g.gain.exponentialRampToValueAtTime(.0001,s+1.6);
+    os.connect(g).connect(AC.destination); os.start(s); os.stop(s+1.7)});
+}catch(e){}}
+$("findBtn").onclick=()=>{const b=BEINGS[Math.floor(Math.random()*BEINGS.length)];cam.tx=b.x;cam.ty=b.y};
+$("cclose").onclick=()=>{$("card").classList.remove("on");try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}};
 $("enter").onclick=()=>$("intro").classList.remove("on");
 $("plantBtn").onclick=()=>$("plant").classList.add("on");
 $("cancel1").onclick=()=>$("plant").classList.remove("on");
 $("go").onclick=()=>{
   const text=$("txt").value.trim(); if(text.length<3)return;
-  const l=getLocal(); l.push({text,t:new Date().toISOString().slice(0,10)});
-  setLocal(l); rebuild(); $("txt").value=""; $("plant").classList.remove("on");
-  cam.tx=objs[objs.length-1].x; cam.ty=objs[objs.length-1].y;
+  const rec={text,t:new Date().toISOString().slice(0,10)};
+  const l=getLocal(); if(!l.some(s=>s.text===text)){l.push(rec);setLocal(l)}
+  rebuild(); $("txt").value=""; $("plant").classList.remove("on");
+  const o=objs.find(s=>s.text===text);
+  cam.tx=o.x; cam.ty=o.y;
+  setTimeout(()=>openCard(o),1800);
 };
-rebuild();
+$("share").onclick=()=>{
+  if(!current)return;
+  const body="```json\n"+JSON.stringify({text:current.text,name:current.name,t:current.t})+"\n```";
+  window.open(`https://github.com/${CFG.REPO}/issues/new?title=${encodeURIComponent("New star: "+current.name)}&labels=star&body=${encodeURIComponent(body)}`,"_blank");
+};
 </script>
 </body>
 </html>
