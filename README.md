@@ -28,3 +28,16 @@ Copy the Worker address (looks like `https://something.yourname.workers.dev`) in
 ## Test
 Plant a star on your site. Within a minute a new Issue appears in your repo and the Action closes it. The star shows for everyone a few minutes later.
 If planting says "not allowed", `ALLOWED_ORIGIN` is wrong.
+
+---
+
+# Open world update (walk on planets, plant love)
+
+Files: `world.js` (new, next to index.html), `miracles.json` (new, repo root, starts as `{}`), `scripts/gods-play.mjs` (new), plus updated `index.html`, `cloudflare-worker.js`, `gods.yml`.
+
+1. Put them in your repo (same places as the old ones) and commit.
+2. Re-paste `cloudflare-worker.js` into your Worker and **Deploy**. Seeds reuse the same `RL` KV binding, so there is nothing new to set up.
+3. Keep `API_URL` filled in `index.html`. Without it, love seeds only show for the person who planted them.
+4. Run the **gods** workflow once ("Run workflow") to see the first gifts appear in `miracles.json`.
+
+Cloudflare's free KV allows about 1,000 writes a day, shared with star planting. A star costs 2 writes, a seed costs 2. If you outgrow it, the paid plan is $5/month.

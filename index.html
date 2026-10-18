@@ -270,6 +270,7 @@ function drawObj(o,t){
 }
 
 function frame(ms){
+  if(window.worldOpen){requestAnimationFrame(frame);return} // paused while you walk on a planet
   const t = ms/1000;
   if (cam.tx!==null){
     cam.x += (cam.tx-cam.x)*.06; cam.y += (cam.ty-cam.y)*.06;
@@ -279,7 +280,7 @@ function frame(ms){
   tick(); ambient(t); core(t); extras(t);
   for (const o of objs) drawObj(o,t);
   for (const o of cst) drawObj(o,t);
-  BEINGS.forEach(b=>drawBeing(b,t)); shoot();
+  BEINGS.forEach(b=>drawBeing(b,t)); shoot(); if(window.galaxyHook)galaxyHook(t);
   bctx.drawImage(cv,0,0,bl.width,bl.height); if(fc%6===0)drawMap();
   if(++fc%30===0){
     $("count").textContent="· "+(objs.length+cst.length)+" stars · "+BEINGS.length+" beings";
@@ -367,7 +368,7 @@ cv.addEventListener("pointerup",e=>{
   }
   drag=null;
 });
-addEventListener("keydown",e=>{const s=30;if(e.key==="ArrowLeft")cam.x-=s;if(e.key==="ArrowRight")cam.x+=s;if(e.key==="ArrowUp")cam.y-=s;if(e.key==="ArrowDown")cam.y+=s});
+addEventListener("keydown",e=>{if(window.WORLD_KEYS)return;const s=30;if(e.key==="ArrowLeft")cam.x-=s;if(e.key==="ArrowRight")cam.x+=s;if(e.key==="ArrowUp")cam.y-=s;if(e.key==="ArrowDown")cam.y+=s});
 
 /* ---------- UI ---------- */
 let current=null;
@@ -523,5 +524,6 @@ $("share").onclick=()=>{
   window.open(`https://github.com/${CFG.REPO}/issues/new?title=${encodeURIComponent("New star: "+current.name)}&labels=star&body=${encodeURIComponent(body)}`,"_blank");
 };
 </script>
+<script src="world.js"></script>
 </body>
 </html>
