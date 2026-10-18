@@ -29,20 +29,32 @@ textarea{width:100%;height:140px;background:#05010f;color:var(--fg);border:2px s
 #ctext{white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.5}
 .hint{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);left:0;right:0;text-align:center;font-size:11px;opacity:.6;pointer-events:none}
 body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:4;background:repeating-linear-gradient(0deg,#0000 0 2px,#0003 2px 3px)}
+#q{font:inherit;font-size:13px;background:#05010fcc;color:var(--fg);border:2px solid var(--neon);padding:8px 10px;width:min(46vw,210px)}
+#res{display:none;position:fixed;top:calc(env(safe-area-inset-top,0px) + 54px);right:12px;width:min(92vw,340px);background:var(--card);border:2px solid var(--neon);box-shadow:0 0 18px #00ffd566;z-index:3;max-height:55vh;overflow:auto}
+#res div{padding:8px 10px;font-size:12px;cursor:pointer;border-bottom:1px solid #00ffd533}
+#res div:hover{background:#00ffd522}
+#res b{color:var(--pink)}
+#bloom{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;filter:blur(6px) brightness(1.7) saturate(1.4);mix-blend-mode:screen;opacity:.65}
+#mm{position:fixed;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 30px);width:110px;height:110px;border:2px solid var(--neon);background:#05010fcc;z-index:3;cursor:pointer;image-rendering:pixelated}
+#clore{font-size:13px;line-height:1.7;margin-top:10px;border-top:1px dashed #ff2bd666;padding-top:8px}
 </style>
 </head>
 <body>
 <canvas id="u"></canvas>
+<canvas id="bloom"></canvas>
+<canvas id="mm" width="110" height="110" title="map: tap to jump"></canvas>
 
 <div class="hud">
   <div class="title">&#9733; CYBER GALAXY <span id="count"></span> <span id="where" style="color:var(--pink)"></span></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button id="zin" title="zoom in">+</button><button id="zout" title="zoom out">&minus;</button>
+    <input id="q" placeholder="search the universe..." autocomplete="off">
     <button id="findBtn">&#128125; FIND A BEING</button>
     <button class="pink" id="plantBtn">+ PLANT A STAR</button>
     <a class="btn" id="tip" target="_blank" rel="noopener">&hearts; TIP</a>
   </div>
 </div>
-<div class="hint">drag to travel · click a glowing object to read its story</div>
+<div class="hint" id="hint">drag to travel · click a glowing object to read its story</div>
 
 <div class="overlay on" id="intro"><div class="box">
   <h1>Are you ready to enter the first cyberspace galactic system?</h1>
@@ -52,7 +64,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:4;back
 
 <div class="overlay" id="plant"><div class="box">
   <h2>Feed the universe</h2>
-  <p style="font-size:13px">Paste a poem, a diary page, a dream, anything. The universe will paint its own interpretation and plant it as a new object forever. (Your words are sent to an image AI service to paint it.)</p>
+  <p style="font-size:13px">Paste a poem, a diary page, a dream, anything. The universe will paint its own interpretation and plant it as a new object forever. (Your words are sent to AI services to paint and describe your star, and may be remixed by the gods. Stars are public and permanent, so please don't include personal info.)</p>
   <textarea id="txt" maxlength="1500" placeholder="write or paste here..."></textarea>
   <div class="row"><button class="pink" id="go">BIRTH IT</button><button id="cancel1">CANCEL</button></div>
 </div></div>
@@ -63,6 +75,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:4;back
   <div class="meta" id="cmeta"></div>
   <div class="meta" id="cstat" style="opacity:.7"></div>
   <div id="ctext"></div>
+  <div id="clore"></div>
   <div class="row" id="crow"><button id="share" class="pink">SHARE TO THE UNIVERSE</button><button id="link">COPY LINK</button><button id="cclose">CLOSE</button></div>
 </div></div>
 
@@ -70,6 +83,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:4;back
 /* ============ CONFIG: edit these two lines ============ */
 const CFG = {
   REPO: "YOURUSER/cyber-galaxy",          // your GitHub repo, "user/repo"
+  API_URL: "",                            // your Cloudflare Worker address (see worker/README.md); "" = visitors use the Share button
   BRANCH: "main",                         // the branch the stars are saved on
   TIP_URL: "https://ko-fi.com/yourname",  // your tip link
   // AI painter. {prompt} and {seed} get filled in. Set to "" to use bit-sprites only.
@@ -130,21 +144,36 @@ const THEMES=[
  ["Wonder Wake",/star|universe|space|god|time|infinite|code|machine|robot|science|why|mystery/gi],
  ["Fury Flats",/anger|angry|rage|hate|fight|burn|war|revenge|furious|break/gi]
 ];
-const RC=i=>{const a=i/8*Math.PI*2;return{x:Math.cos(a)*520,y:Math.sin(a)*520}};
+let RING=520; const CNT=new Array(9).fill(0); // the whole map stretches outward as stars are added
+const GODS=["Mother Nebula","The Cartographer","Old Static"], SENT=new Map();
+const NB=["Velvet Cove","Static Shore","Moth Meadow","Neon Fjord","Lantern Row","Glass Garden","Echo Basin","Pixel Reach","Violet Deep","Ember Court","Quiet Harbor","Halo Heights"];
+const RC=i=>{const a=i/8*Math.PI*2;return{x:Math.cos(a)*RING,y:Math.sin(a)*RING}};
 function themeOf(text){let b=-1,best=0;THEMES.forEach(([n,re],i)=>{const c=(text.match(re)||[]).length;if(c>best){best=c;b=i}});return b}
 function place(o){
   const a=interpret(o.text), r=rngFrom(a.seed ^ 0x9e3779b9), th=themeOf(o.text);
-  let x,y;
+  let x,y,nbn="";
   const bg=o.being!=null?BEINGS[o.being]:null;
   if(bg){const ang=r()*Math.PI*2,d=Math.sqrt(r())*320;x=bg.hx+Math.cos(ang)*d;y=bg.hy+Math.sin(ang)*d}
-  else if(th<0){const ang=r()*Math.PI*2,d=1100+r()*500;x=Math.cos(ang)*d;y=Math.sin(ang)*d}
-  else{const c=RC(th),ang=r()*Math.PI*2,d=Math.sqrt(r())*260;x=c.x+Math.cos(ang)*d;y=c.y+Math.sin(ang)*d}
-  return Object.assign({}, o, a, {x,y,creature:bg||undefined,region:bg?bg.name+"'s garden":th<0?"Strange Frontier":THEMES[th][0],sp:.2+r()*.6,ph:r()*6.28});
+  else if(th<0){const ang=r()*Math.PI*2,d=RING*2+r()*500;x=Math.cos(ang)*d;y=Math.sin(ang)*d}
+  else{ // every 20 stars in a region, a new named neighborhood opens a little further out
+    const cnt=CNT[th]++,nb=Math.floor(cnt/20),c=RC(th),rr=rngFrom(hash(th+":"+nb)),oa=rr()*6.28,od=nb?180+rr()*40*nb:0;
+    const ang=r()*Math.PI*2,d=Math.sqrt(r())*(nb?110:200);
+    x=c.x+Math.cos(oa)*od+Math.cos(ang)*d;y=c.y+Math.sin(oa)*od+Math.sin(ang)*d;
+    nbn=nb?NB[hash(th+"n"+nb)%NB.length]:"";
+  }
+  return Object.assign({}, o, a, {x,y,creature:bg||undefined,name:(o.lore&&o.lore.name)||a.name,type:o.god!=null?["galaxy","nebula"][a.seed%2]:a.type,region:bg?bg.name+"'s garden":th<0?"Strange Frontier":THEMES[th][0]+(nbn?" · "+nbn:""),sp:.2+r()*.6,ph:r()*6.28});
 }
 function rebuild(remote){
-  const seen = new Set(), all = [];
+  const seen = new Set(), all = []; CNT.fill(0);
+  RING = 520 + 10*Math.sqrt(SEEDS.length + (remote||window._remote||[]).length + getLocal().length);
   for (const o of [...SEEDS, ...(remote||window._remote||[]), ...getLocal()]){
-    if (!o.text || seen.has(o.text)) continue; seen.add(o.text); all.push(place(o));
+    if (!o.text || seen.has(o.text)) continue; seen.add(o.text); const p = place(o);
+    if (o.god != null) p.region = "Made by " + GODS[o.god];
+    if (o.parents) { // a god's creation floats between the stars it was born from
+      const ps = o.parents.map(id => all.find(q => String(q.id) === String(id))).filter(Boolean);
+      if (ps.length) { p.x = ps.reduce((a,q)=>a+q.x,0)/ps.length + Math.sin(p.seed)*50; p.y = ps.reduce((a,q)=>a+q.y,0)/ps.length + Math.cos(p.seed)*50; p.parentObjs = ps; }
+    }
+    all.push(p);
   }
   objs = all; $("count").textContent = "· " + objs.length + " objects";
 }
@@ -158,8 +187,8 @@ rebuild([]);
 
 /* ---------- canvas / camera ---------- */
 const cv = $("u"), ctx = cv.getContext("2d");
-const PX = 3; let W, H;
-function resize(){W=Math.ceil(innerWidth/PX);H=Math.ceil(innerHeight/PX);cv.width=W;cv.height=H}
+let PX = 3; let W, H; const bl=$("bloom"), bctx=bl.getContext("2d");
+function resize(){W=Math.ceil(innerWidth/PX);H=Math.ceil(innerHeight/PX);cv.width=W;cv.height=H;bl.width=W>>1;bl.height=H>>1}
 addEventListener("resize", resize); resize();
 const cam = {x:0, y:0, tx:null, ty:null};
 
@@ -251,10 +280,11 @@ function frame(ms){
   for (const o of objs) drawObj(o,t);
   for (const o of cst) drawObj(o,t);
   BEINGS.forEach(b=>drawBeing(b,t)); shoot();
+  bctx.drawImage(cv,0,0,bl.width,bl.height); if(fc%6===0)drawMap();
   if(++fc%30===0){
     $("count").textContent="· "+(objs.length+cst.length)+" stars · "+BEINGS.length+" beings";
-    let bi=-1,bd=420;THEMES.forEach((_,i)=>{const c=RC(i),d=Math.hypot(c.x-cam.x,c.y-cam.y);if(d<bd){bd=d;bi=i}});
-    $("where").textContent=bi>=0?"· "+THEMES[bi][0]:Math.hypot(cam.x,cam.y)>900?"· Strange Frontier":"· open space";
+    let bi=-1,bd=RING*.55;THEMES.forEach((_,i)=>{const c=RC(i),d=Math.hypot(c.x-cam.x,c.y-cam.y);if(d<bd){bd=d;bi=i}});
+    $("where").textContent=bi>=0?"· "+THEMES[bi][0]:Math.hypot(cam.x,cam.y)>RING*1.7?"· Strange Frontier":"· open space";
   }
   requestAnimationFrame(frame);
 }
@@ -301,6 +331,7 @@ function dots(a,b,col){
   for(let i=0;i<n;i++)ctx.fillRect(Math.round(x1+(x2-x1)*i/n),Math.round(y1+(y2-y1)*i/n),1,1);
 }
 function extras(t){ // constellation lines: being trails + nearby human stars
+  for(const o of objs)if(o.parentObjs)for(const q of o.parentObjs)dots(o,q,"#ffd24a99"); // family tree
   for(let i=0;i<cst.length-1;i++)if(cst[i].creature===cst[i+1].creature)dots(cst[i],cst[i+1],cst[i].pal[0].replace(")"," / .3)"));
   if(objs.length<120)for(let i=0;i<objs.length;i++)for(let j=i+1;j<objs.length;j++)
     if(Math.hypot(objs[i].x-objs[j].x,objs[i].y-objs[j].y)<260)dots(objs[i],objs[j],"#00ffd540");
@@ -362,7 +393,11 @@ function openCard(o){
   $("cmeta").textContent=isB?o.species.toUpperCase()+" · cyber being · has planted "+cst.filter(s=>s.creature===o).length+" stars"
     :o.type.toUpperCase()+(o.creature?" · planted by "+o.creature.name+" the "+o.creature.species:" · "+o.region+" · born "+(o.t||"")+" · named by the universe")+" · "+(o.t||"");
   $("ctext").textContent=isB?'"'+text+'"':text; $("cstat").textContent="";
-  $("share").style.display=(!isB&&!o.creature&&getLocal().some(s=>s.text===o.text))?"":"none";
+  const L=$("clore"); L.textContent="";
+  if(!isB){const l=lore(o);[["Born from",o.parentObjs?o.parentObjs.map(q=>q.name).join(" + "):""],["Weather",l.weather],["Life",l.life],["Population",l.population],["Fun fact",l.fact]].forEach(([k,v])=>{
+    if(!v)return; const d=document.createElement("div"),b=document.createElement("b");
+    b.textContent=k+": "; b.style.color="var(--neon)"; d.appendChild(b); d.appendChild(document.createTextNode(v)); L.appendChild(d)})}
+  $("share").style.display=(!isB&&!o.creature&&getLocal().some(s=>s.text===o.text)&&(!CFG.API_URL||SENT.get(o.text)==="fail"))?"":"none";
   o.key=isB?"b="+o.id:o.creature&&!o.text?"c="+o.creature.id+"."+o.n:"s="+o.seed.toString(36);
   try{history.replaceState(null,"","#"+o.key)}catch(e){}
   $("card").classList.add("on"); aiArt(o,text); sing(o);
@@ -387,7 +422,16 @@ $("link").onclick=()=>{
 };
 /* ---------- every star has its own note (pentatonic, soft) ---------- */
 let AC;
-function sing(o){try{
+function playSong(s){try{ // a song is just tiny note data: tempo + up to 16 scale steps, played by the page's own synth
+  if(!s||!Array.isArray(s.notes))return false;
+  AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  const sc=[0,2,4,7,9],deg=n=>sc[n%5]+12*Math.floor(n/5),step=60/Math.max(50,Math.min(160,+s.tempo||90))/2,t0=AC.currentTime+.05;
+  s.notes.slice(0,16).forEach((n,i)=>{const os=AC.createOscillator(),g=AC.createGain(),t=t0+i*step,f=196*Math.pow(2,deg(Math.max(0,Math.min(14,n|0)))/12);
+    os.type=i%4?"triangle":"sine";os.frequency.value=f;
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.07,t+.03);g.gain.exponentialRampToValueAtTime(.0001,t+step*1.8);
+    os.connect(g).connect(AC.destination);os.start(t);os.stop(t+step*2)});
+  return true}catch(e){return false}}
+function sing(o){try{ if(o.lore&&playSong(o.lore.song))return;
   AC=AC||new (window.AudioContext||window.webkitAudioContext)();
   const sc=[0,2,4,7,9,12,14,16], f=220*Math.pow(2,sc[o.seed%8]/12), t0=AC.currentTime;
   [0,1,2].forEach(i=>{const os=AC.createOscillator(),g=AC.createGain(),s=t0+i*.12;
@@ -395,6 +439,64 @@ function sing(o){try{
     g.gain.setValueAtTime(.0001,s); g.gain.exponentialRampToValueAtTime(.08,s+.05); g.gain.exponentialRampToValueAtTime(.0001,s+1.6);
     os.connect(g).connect(AC.destination); os.start(s); os.stop(s+1.7)});
 }catch(e){}}
+/* ---------- search: find any star by its words, name, feeling-region or being ---------- */
+const res=document.createElement("div"); res.id="res"; document.body.appendChild(res);
+$("q").addEventListener("input",()=>{
+  const words=$("q").value.trim().toLowerCase().split(/\s+/).filter(w=>w.length>1);
+  res.textContent=""; if(!words.length){res.style.display="none";return}
+  const hits=[...objs,...BEINGS].filter(o=>{
+    const hay=[o.name,o.text,o.region,o.species].filter(Boolean).join(" ").toLowerCase();
+    return words.every(w=>hay.includes(w));
+  }).slice(0,8);
+  res.style.display="block";
+  if(!hits.length){const d=document.createElement("div");d.textContent="no stars found yet";res.appendChild(d);return}
+  for(const o of hits){
+    const d=document.createElement("div"),b=document.createElement("b");
+    b.textContent=o.name; d.appendChild(b);
+    d.appendChild(document.createTextNode(" · "+(o.kind==="being"?o.species+" (being)":(o.text||"").replace(/\s+/g," ").slice(0,60))));
+    d.onclick=()=>{res.style.display="none";$("q").value="";cam.tx=o.x;cam.ty=o.y;setTimeout(()=>openCard(o),1300)};
+    res.appendChild(d);
+  }
+});
+/* ---------- zoom: crisp pixel steps, + / − buttons or mouse wheel ---------- */
+const ZS=[1,2,3,4,6]; let zt=0;
+function zoom(d){const i=Math.max(0,Math.min(ZS.length-1,ZS.indexOf(PX)+d));PX=ZS[i];resize()}
+$("zin").onclick=()=>zoom(1); $("zout").onclick=()=>zoom(-1);
+cv.addEventListener("wheel",e=>{e.preventDefault();if(Date.now()-zt<180)return;zt=Date.now();zoom(e.deltaY<0?1:-1)},{passive:false});
+
+/* ---------- every world gets a weather report, wildlife, population and a fun fact ---------- */
+const WX=["slow rivers of violet rain","warm static winds","glitter-snow that never lands","three moons of fog","gentle thunder in eight colors","a sky that hums at dusk","drifting ash made of fireflies","calm, with a chance of meteors"];
+const LIFE=["glow-moths that sing in chords","tiny pixel whales in the clouds","lantern crabs that cluster like cities","mirror-foxes that copy your dreams","ribbon jellyfish drifting in the lowlands","moss that blinks in morse code","quiet giants made of old radio","sparrows that only fly backwards"];
+const FACT=["Every sunrise lasts one heartbeat longer than the last.","Its oldest tree has never once been seen.","The residents trade in secrets, never coins.","Its tides are pulled by a moon nobody has found.","Echoes here answer a day late.","The planet is slowly learning to read.","Lighthouses grow wild on its shores.","Its night sky is made of other people's words."];
+function lore(o){ // AI-written lore from the repo wins; otherwise a world is described from its seed
+  if(o.lore)return o.lore;
+  const r=rngFrom(o.seed^0x51ed270b),p=a=>a[Math.floor(r()*a.length)];
+  const days=Math.max(0,(Date.now()-Date.parse(o.t||"2026-10-17"))/864e5), base=Math.floor(1e3+r()*9e6);
+  return{weather:WX[(Math.floor(r()*99)+Math.floor(Date.now()/216e5))%WX.length]+" (changes every 6 hours)",life:p(LIFE),population:Math.floor(base*(1+days*.02)).toLocaleString()+" and growing",fact:p(FACT)};
+}
+
+/* ---------- rotating fun facts at the bottom ---------- */
+function tips(){
+  const n=objs.length,nw=objs[n-1],cnt={};objs.forEach(o=>cnt[o.region]=(cnt[o.region]||0)+1);
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+  return["drag to travel · tap a glowing object · + / − to zoom",
+    "fun fact: "+n+" human stars shine here, tended by "+BEINGS.length+" beings",
+    top?"the busiest neighborhood is "+top[0]+" with "+top[1]+" stars":"be the first to plant a star",
+    nw?"newest star: "+nw.name+" in "+nw.region:"the universe is waiting for its first words",
+    "stars here are born, shine, then explode, and come back in new colors"];
+}
+let ti=0; setInterval(()=>{const a=tips();$("hint").textContent=a[ti++%a.length]},7000);
+
+/* ---------- minimap: dots are stars, white dots are beings, the box is your view ---------- */
+function drawMap(){
+  const c=$("mm").getContext("2d"),R=RING*3.2,s=55/R,X=v=>55+v*s;
+  c.fillStyle="#05010f";c.fillRect(0,0,110,110);
+  THEMES.forEach((_,i)=>{const p=RC(i);c.fillStyle="#ff2bd633";c.fillRect(X(p.x)-6,X(p.y)-6,12,12)});
+  for(const o of objs){c.fillStyle=o.pal[1];c.fillRect(Math.round(X(o.x)),Math.round(X(o.y)),1,1)}
+  c.fillStyle="#fff";BEINGS.forEach(b=>c.fillRect(Math.round(X(b.x))-1,Math.round(X(b.y))-1,2,2));
+  c.strokeStyle="#00ffd5";c.strokeRect(Math.round(X(cam.x-W/2)),Math.round(X(cam.y-H/2)),Math.max(2,Math.round(W*s)),Math.max(2,Math.round(H*s)));
+}
+$("mm").onclick=e=>{const b=$("mm").getBoundingClientRect(),R=RING*3.2;cam.tx=((e.clientX-b.left)/b.width*2-1)*R;cam.ty=((e.clientY-b.top)/b.height*2-1)*R};
 $("findBtn").onclick=()=>{const b=BEINGS[Math.floor(Math.random()*BEINGS.length)];cam.tx=b.x;cam.ty=b.y};
 $("cclose").onclick=()=>{$("card").classList.remove("on");try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}};
 $("enter").onclick=()=>$("intro").classList.remove("on");
@@ -405,6 +507,12 @@ $("go").onclick=()=>{
   const rec={text,t:new Date().toISOString().slice(0,10)};
   const l=getLocal(); if(!l.some(s=>s.text===text)){l.push(rec);setLocal(l)}
   rebuild(); $("txt").value=""; $("plant").classList.remove("on");
+  if(CFG.API_URL){
+    SENT.set(text,"sending"); $("hint").textContent="sending your star to the universe...";
+    fetch(CFG.API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})})
+      .then(r=>r.json()).then(j=>{SENT.set(text,j.ok?"ok":"fail");$("hint").textContent=j.ok?"your star is on its way: everyone will see it in a few minutes":(j.error||"could not send, use Share")})
+      .catch(()=>{SENT.set(text,"fail");$("hint").textContent="could not reach the universe, use the Share button"});
+  }
   const o=objs.find(s=>s.text===text);
   cam.tx=o.x; cam.ty=o.y;
   setTimeout(()=>openCard(o),1800);
