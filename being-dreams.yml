@@ -1,0 +1,40 @@
+name: being-dreams
+on:
+  schedule:
+    - cron: "5 */2 * * *"   # every 2 hours, one being dreams a star. Use "5 */6 * * *" to cut cost.
+  workflow_dispatch:         # lets you press "Run workflow" to test right now
+
+permissions:
+  contents: write
+
+concurrency:
+  group: plant-star          # shares a line with the visitor worker so they never collide
+  cancel-in-progress: false
+
+jobs:
+  dream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm i --no-save sharp
+      - name: A being writes a star
+        run: node scripts/beings.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_TEXT_MODEL: ${{ vars.GEMINI_TEXT_MODEL }}
+      - name: Paint it
+        run: node scripts/plant.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_IMAGE_MODEL: ${{ vars.GEMINI_IMAGE_MODEL }}
+          IMAGE_URL: ${{ secrets.IMAGE_URL }}
+          IMAGE_AUTH: ${{ secrets.IMAGE_AUTH }}
+      - name: Save to the universe
+        run: |
+          git config user.name "cyber-galaxy[bot]"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A universe.json stars
+          git diff --cached --quiet || (git commit -m "a being dreamed a star" && git pull --rebase && git push)
