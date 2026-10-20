@@ -37,15 +37,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:4;back
 #bloom{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;filter:blur(6px) brightness(1.7) saturate(1.4);mix-blend-mode:screen;opacity:.65}
 #mm{position:fixed;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 30px);width:110px;height:110px;border:2px solid var(--neon);background:#05010fcc;z-index:3;cursor:pointer;image-rendering:pixelated}
 #clore{font-size:13px;line-height:1.7;margin-top:10px;border-top:1px dashed #ff2bd666;padding-top:8px}
-#world{position:fixed;inset:0;display:none;background:#000;z-index:6}#world.on{display:block}
-#wc{width:100%;height:100%;image-rendering:pixelated;touch-action:none}
-#wtop{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap}
-#wmsg{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 130px);text-align:center;font-size:13px;text-shadow:0 0 6px #000,0 0 6px #000,0 0 3px #000;pointer-events:none}
-#dpad{position:absolute;left:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:4px;touch-action:none}
-#dpad button{padding:0;font-size:20px;user-select:none;touch-action:none;background:#05010f99}
-#dpad [data-d=u]{grid-column:2;grid-row:1}#dpad [data-d=l]{grid-column:1;grid-row:2}#dpad [data-d=d]{grid-column:2;grid-row:2}#dpad [data-d=r]{grid-column:3;grid-row:2}
-#wplant{position:absolute;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);padding:18px 14px;touch-action:none;background:#05010f99}
-#avp,#dex{z-index:8}
+#dex{z-index:10}
 .dexrow{display:flex;gap:10px;align-items:center;border-bottom:1px dashed #ff2bd666;padding:8px 0;font-size:13px}
 .dexrow canvas{width:80px;height:64px;image-rendering:pixelated;background:#000;border:2px solid var(--neon);flex:none}
 #cplate{display:none;width:100%;margin-top:10px;border:2px solid var(--neon);image-rendering:pixelated}
@@ -90,16 +82,9 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:4;back
   <div id="ctext"></div>
   <div id="clore"></div>
   <img id="cplate" alt="field guide plate of this world's wildlife">
-  <div class="row" id="crow"><button id="share" class="pink">SHARE TO THE UNIVERSE</button><button id="enter2" class="pink">ENTER WORLD</button><button id="link">COPY LINK</button><button id="cclose">CLOSE</button></div>
+  <div class="row" id="crow"><button id="share" class="pink">SHARE TO THE UNIVERSE</button><button id="link">COPY LINK</button><button id="cclose">CLOSE</button></div>
 </div></div>
 
-<div id="world"><canvas id="wc"></canvas>
-  <div id="wtop"><button id="wexit">&larr; LEAVE</button><button id="wscan">&#128269; SCAN</button><button id="wdex">FIELD GUIDE</button><button id="wav">ALIEN</button></div>
-  <div id="wmsg"></div>
-  <div id="dpad"><button data-d="u">&uarr;</button><button data-d="l">&larr;</button><button data-d="d">&darr;</button><button data-d="r">&rarr;</button></div>
-  <button id="wplant" class="pink">&hearts; PLANT LOVE</button>
-</div>
-<div class="overlay" id="avp"><div class="box"><h2>Choose your alien</h2><div id="avrow"></div><div class="row"><button id="avok" class="pink">THIS ONE</button></div></div></div>
 <div class="overlay" id="dex"><div class="box"><h2>Alien field guide <span id="dexn"></span></h2><div id="dexl"></div><div class="row"><button id="dexc">CLOSE</button></div></div></div>
 <script>
 /* ============ CONFIG: edit these two lines ============ */
@@ -292,6 +277,7 @@ function drawObj(o,t){
 }
 
 function frame(ms){
+  if(window.worldOpen){requestAnimationFrame(frame);return} // paused while you walk on a planet
   const t = ms/1000;
   if (cam.tx!==null){
     cam.x += (cam.tx-cam.x)*.06; cam.y += (cam.ty-cam.y)*.06;
@@ -301,7 +287,7 @@ function frame(ms){
   tick(); ambient(t); core(t); extras(t);
   for (const o of objs) drawObj(o,t);
   for (const o of cst) drawObj(o,t);
-  BEINGS.forEach(b=>drawBeing(b,t)); drawGods(t); shoot();
+  BEINGS.forEach(b=>drawBeing(b,t)); drawGods(t); shoot(); if(window.galaxyHook)galaxyHook(t);
   bctx.drawImage(cv,0,0,bl.width,bl.height); if(fc%6===0)drawMap();
   if(++fc%30===0){
     $("count").textContent="· "+(objs.length+cst.length)+" stars · "+BEINGS.length+" beings";
@@ -389,7 +375,7 @@ cv.addEventListener("pointerup",e=>{
   }
   drag=null;
 });
-addEventListener("keydown",e=>{const s=30;if(e.key==="ArrowLeft")cam.x-=s;if(e.key==="ArrowRight")cam.x+=s;if(e.key==="ArrowUp")cam.y-=s;if(e.key==="ArrowDown")cam.y+=s});
+addEventListener("keydown",e=>{if(window.WORLD_KEYS)return;const s=30;if(e.key==="ArrowLeft")cam.x-=s;if(e.key==="ArrowRight")cam.x+=s;if(e.key==="ArrowUp")cam.y-=s;if(e.key==="ArrowDown")cam.y+=s});
 
 /* ---------- UI ---------- */
 let current=null;
@@ -422,7 +408,6 @@ function openCard(o){
   $("share").style.display=(!isB&&!o.creature&&getLocal().some(s=>s.text===o.text)&&(!CFG.API_URL||SENT.get(o.text)==="fail"))?"":"none";
   o.key=isB?"b="+o.id:o.creature&&!o.text?"c="+o.creature.id+"."+o.n:"s="+o.seed.toString(36);
   try{history.replaceState(null,"","#"+o.key)}catch(e){}
-  $("enter2").style.display=isB?"none":"";
   const P=$("cplate"); P.style.display=o.plate?"block":"none"; if(o.plate)P.src=RAW+o.plate;
   $("card").classList.add("on"); aiArt(o,text); sing(o);
 }
@@ -521,107 +506,21 @@ function drawMap(){
   c.strokeStyle="#00ffd5";c.strokeRect(Math.round(X(cam.x-W/2)),Math.round(X(cam.y-H/2)),Math.max(2,Math.round(W*s)),Math.max(2,Math.round(H*s)));
 }
 $("mm").onclick=e=>{const b=$("mm").getBoundingClientRect(),R=RING*3.2;cam.tx=((e.clientX-b.left)/b.width*2-1)*R;cam.ty=((e.clientY-b.top)/b.height*2-1)*R};
-/* ================= little open worlds: land on any star, planet or galaxy ================= */
-const WT=8,WN=96,wcx=$("wc").getContext("2d"),WLD={on:false,keys:{},seeds:[],gifts:[],crit:[],sp:[]};
-const AV=[0,1,2,3,4,5].map(i=>interpret("alien"+i)); let avSel=0; try{avSel=+(localStorage.getItem("cg_av")||0)}catch(e){}
-const API=()=>CFG.API_URL.replace(/\/$/,"");
-function alien(c,a,x,y,s){for(let gy=0;gy<12;gy++)for(let gx=0;gx<6;gx++){const v=a.grid[gy*2][gx*2];if(!v)continue;c.fillStyle=a.pal[v-1];c.fillRect(x+gx*s,y+gy*s,s,s);c.fillRect(x+(11-gx)*s,y+gy*s,s,s)}c.fillStyle="#fff";c.fillRect(x+3*s,y+5*s,s,s);c.fillRect(x+8*s,y+5*s,s,s)}
+/* ================= field guide: befriend creatures in the worlds to collect them all ================= */
 function critter(c,x,y,col,s){c.fillStyle=col;c.fillRect(x-2*s,y-3*s,5*s,4*s);c.fillRect(x-s,y-4*s,3*s,s);c.fillStyle="#000";c.fillRect(x-s,y-2*s,s,s);c.fillRect(x+s,y-2*s,s,s)}
-function vnoise(sd,x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,h=(a,b)=>hash(sd+":"+a+":"+b)/4294967296,s=t=>t*t*(3-2*t),u=s(xf),v=s(yf);
-  const a=h(xi,yi),b=h(xi+1,yi),c=h(xi,yi+1),d=h(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
 const SA=["Glow","Velvet","Static","Lantern","Mirror","Paper","Neon","Hollow"],SB=["moth","whale","fox","crab","wyrm","jelly","sparrow","manta"];
 function species(o){const l=lore(o);if(l.species&&l.species.length)return l.species;const r=rngFrom(o.seed^0xabc);
   return[0,1,2].map(()=>({name:SA[Math.floor(r()*8)]+" "+SB[Math.floor(r()*8)],desc:"Often seen near "+(l.life||"the quiet hills")}))}
-const wMsg=t=>{$("wmsg").textContent=t};
-function openWorld(o){
-  const sd=o.seed.toString(36),hue=o.hue!=null?o.hue:o.seed%360;
-  Object.assign(WLD,{o,key:sd,hue,tiles:new Float32Array(WN*WN),deco:new Uint8Array(WN*WN),sp:species(o),gmsg:null,keys:{}});
-  for(let y=0;y<WN;y++)for(let x=0;x<WN;x++){
-    const i=y*WN+x,h=.65*vnoise(sd,x/10,y/10)+.35*vnoise(sd+"b",x/4,y/4),r=hash(sd+x+","+y)/4294967296;
-    WLD.tiles[i]=h; WLD.deco[i]=h>=.46&&h<.62&&r<.07?1:h>=.62&&h<.8&&r<.5?2:h>=.9&&r<.2?3:0; // 1 flower, 2 tree, 3 crystal
-  }
-  let px=WN/2,py=WN/2; for(let k=0;k<3000;k++){const a=k*.5,d=k*.03,tx=Math.floor(WN/2+Math.cos(a)*d),ty=Math.floor(WN/2+Math.sin(a)*d);
-    if(tx>0&&ty>0&&tx<WN&&ty<WN){const h=WLD.tiles[ty*WN+tx];if(h>.46&&h<.62){px=tx;py=ty;break}}}
-  WLD.px=px*WT+4; WLD.py=py*WT+4;
-  const r=rngFrom(hash(sd+"c"));
-  WLD.crit=[...Array(9)].map((_,i)=>({x:(8+r()*(WN-16))*WT,y:(8+r()*(WN-16))*WT,R:10+r()*40,sp:.2+r()*.5,ph:r()*6.28,s:i%3,cx:0,cy:0}));
-  const day=Math.floor(Date.now()/864e5);
-  WLD.gifts=[...Array(7)].map((_,i)=>{const d=day-i,g=rngFrom(hash(sd+":g"+d));return{x:(6+g()*(WN-12))*WT,y:(6+g()*(WN-12))*WT,d,god:GODS[((d%3)+3)%3]}});
-  $("world").classList.add("on"); const cv2=$("wc"); cv2.width=Math.ceil(innerWidth/4); cv2.height=Math.ceil(innerHeight/4);
-  WLD.on=true; WLD.last=0; wMsg(o.name+": "+lore(o).weather); loadSeeds(); clearInterval(WLD.iv); WLD.iv=setInterval(loadSeeds,15000);
-  requestAnimationFrame(wLoop); try{if(localStorage.getItem("cg_av")===null)showAv()}catch(e){}
-}
-const wWalk=(x,y)=>{const tx=Math.floor(x/WT),ty=Math.floor(y/WT);return tx>=0&&ty>=0&&tx<WN&&ty<WN&&WLD.tiles[ty*WN+tx]>=.33};
-async function loadSeeds(){try{
-  if(CFG.API_URL){const j=await (await fetch(API()+"/seeds?p="+WLD.key)).json();if(Array.isArray(j))WLD.seeds=j}
-  else WLD.seeds=JSON.parse(localStorage.getItem("cg_seeds_"+WLD.key)||"[]");
-}catch(e){}}
-function plantLove(){
-  if(!WLD.on||Date.now()-(WLD.cd||0)<3000)return; WLD.cd=Date.now();
-  const s={x:Math.round(WLD.px),y:Math.round(WLD.py),a:avSel,t:Date.now()}; WLD.seeds.push(s);
-  wMsg("You planted a seed of love. It sprouts in a minute and blooms in an hour. Come back and watch it grow.");
-  if(CFG.API_URL)fetch(API()+"/seed",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({p:WLD.key,x:s.x,y:s.y,a:s.a})})
-    .then(r=>r.json()).then(j=>{if(!j.ok)wMsg(j.error||"The seed could not be saved.")}).catch(()=>wMsg("Could not reach the universe: only you can see this seed."));
-  else try{localStorage.setItem("cg_seeds_"+WLD.key,JSON.stringify(WLD.seeds))}catch(e){}
-}
 const getDex=()=>{try{return JSON.parse(localStorage.getItem("cg_dex")||"{}")}catch(e){return{}}};
-function wScan(){
-  let best=null,bd=22;for(const c of WLD.crit){const d=Math.hypot(c.cx-WLD.px,c.cy-WLD.py);if(d<bd){bd=d;best=c}}
-  if(!best)return wMsg("No creature close enough to scan. Walk up to one.");
-  const sp=WLD.sp[best.s%WLD.sp.length],col=`hsl(${(WLD.hue+best.s*110+60)%360} 80% 60%)`,dx=getDex(),k=WLD.key+":"+best.s,isNew=!dx[k];
-  dx[k]={name:sp.name,desc:sp.desc,planet:WLD.o.name,col}; try{localStorage.setItem("cg_dex",JSON.stringify(dx))}catch(e){}
-  wMsg("Scanned "+sp.name+(isNew?" (new! added to your field guide)":"")+": "+sp.desc);
-}
 function showDex(){const dx=getDex(),L=$("dexl"),ks=Object.keys(dx);L.textContent="";$("dexn").textContent="· "+ks.length+" discovered";
-  if(!ks.length){L.textContent="Nothing scanned yet. Enter a world, walk up to a creature and press SCAN."}
-  ks.forEach(k=>{const e=dx[k],row=document.createElement("div"),c=document.createElement("canvas"),t=document.createElement("div"),b=document.createElement("b");
-    row.className="dexrow";c.width=40;c.height=32;critter(c.getContext("2d"),15,26,e.col,5);
-    b.textContent=e.name;b.style.color="var(--pink)";t.appendChild(b);t.appendChild(document.createElement("br"));
-    t.appendChild(document.createTextNode(e.desc+" · found on "+e.planet));row.appendChild(c);row.appendChild(t);L.appendChild(row)});
+  if(!ks.length)L.textContent="Nothing yet. Land on a world and make friends with a creature (walk up and press E).";
+  ks.forEach(k=>{const e=dx[k],row=document.createElement("div"),t=document.createElement("div"),b=document.createElement("b");let pic;
+    if(typeof e.img==="string"&&e.img.startsWith("data:image/png;base64,")){pic=document.createElement("img");pic.src=e.img;pic.style.cssText="width:80px;height:64px;object-fit:contain;image-rendering:pixelated;background:#000;border:2px solid var(--neon);flex:none"}
+    else{pic=document.createElement("canvas");pic.width=40;pic.height=32;critter(pic.getContext("2d"),15,26,e.col||"#0fd",5)}
+    row.className="dexrow";b.textContent=e.name;b.style.color="var(--pink)";t.appendChild(b);t.appendChild(document.createElement("br"));
+    t.appendChild(document.createTextNode(e.desc+" · found on "+e.planet));row.appendChild(pic);row.appendChild(t);L.appendChild(row)});
   $("dex").classList.add("on")}
-function wUpdate(dt){
-  const k=WLD.keys,dx=(k.r?1:0)-(k.l?1:0),dy=(k.d?1:0)-(k.u?1:0);
-  if(dx||dy){const sp=46*dt/Math.hypot(dx,dy),nx=WLD.px+dx*sp,ny=WLD.py+dy*sp;if(wWalk(nx,WLD.py))WLD.px=nx;if(wWalk(WLD.px,ny))WLD.py=ny}
-  for(const g of WLD.gifts)if(Math.hypot(g.x-WLD.px,g.y-WLD.py)<16&&WLD.gmsg!==g.d){WLD.gmsg=g.d;wMsg("A gift from "+g.god+" ("+new Date(g.d*864e5).toISOString().slice(0,10)+"): a monument rose here overnight.")}
-}
-function wDraw(t){
-  const c=wcx,cw=$("wc").width,ch=$("wc").height,H0=WLD.hue,
-    cx=Math.max(0,Math.min(WN*WT-cw,WLD.px-cw/2)),cy=Math.max(0,Math.min(WN*WT-ch,WLD.py-ch/2)),x0=Math.floor(cx/WT),y0=Math.floor(cy/WT);
-  c.fillStyle="#000";c.fillRect(0,0,cw,ch);
-  for(let ty=y0;ty<=y0+ch/WT+1&&ty<WN;ty++)for(let tx=x0;tx<=x0+cw/WT+1&&tx<WN;tx++){
-    const i=ty*WN+tx,h=WLD.tiles[i],sx=Math.round(tx*WT-cx),sy=Math.round(ty*WT-cy),sh=(tx+ty+Math.floor(t*2))%2;
-    c.fillStyle=h<.33?`hsl(${H0+190} 70% ${sh?22:25}%)`:h<.4?`hsl(${H0+190} 65% ${sh?38:41}%)`:h<.46?`hsl(${H0+40} 55% 65%)`:h<.8?`hsl(${H0} 55% ${34+((tx*7+ty*3)%3)*2}%)`:h<.9?`hsl(${H0} 12% 42%)`:`hsl(${H0} 40% 85%)`;
-    c.fillRect(sx,sy,WT,WT);
-    const d=WLD.deco[i];
-    if(d===1){c.fillStyle=`hsl(${(H0+120+tx*40)%360} 90% 70%)`;c.fillRect(sx+3,sy+3,2,2)}
-    else if(d===2){c.fillStyle=`hsl(${H0} 60% 22%)`;c.fillRect(sx+2,sy+1,4,5);c.fillStyle=`hsl(${H0} 50% 15%)`;c.fillRect(sx+3,sy+6,2,2)}
-    else if(d===3){c.fillStyle=`hsl(${(H0+180)%360} 100% 75%)`;c.fillRect(sx+3,sy+1,2,6);c.fillRect(sx+2,sy+3,4,2)}
-  }
-  for(const g of WLD.gifts){const x=Math.round(g.x-cx),y=Math.round(g.y-cy);c.fillStyle=`hsl(${(t*60+g.d*40)%360} 100% 70%)`;c.fillRect(x-1,y-14,3,14);c.fillRect(x-3,y-10,7,2);c.fillRect(x-1,y-16,3,2)}
-  for(const s of WLD.seeds){ // love: seed, sprout, bud, bloom, then a spreading flower patch
-    const age=Date.now()-s.t,x=Math.round(s.x-cx),y=Math.round(s.y-cy);if(x<-20||y<-20||x>cw+20||y>ch+20)continue;
-    if(age<6e4){c.fillStyle="#7b4a2b";c.fillRect(x,y,2,2)}
-    else if(age<6e5){c.fillStyle="#3fdc6a";c.fillRect(x,y-3,1,4);c.fillRect(x+1,y-3,1,1)}
-    else{c.fillStyle="#3fdc6a";c.fillRect(x,y-2,1,3);c.fillStyle="#ff2bd6";c.fillRect(x-1,y-5,3,2);
-      if(age>=36e5){c.fillStyle="#ff2bd655";c.fillRect(x-4,y-8,9,8);c.fillStyle="#ff9ef5";c.fillRect(x-1,y-6,3,3);
-        const r=rngFrom(hash(s.x+","+s.y));for(let i=0,n=Math.min(9,2+Math.floor(age/36e5));i<n;i++){c.fillStyle=`hsl(${330+r()*30} 90% ${60+r()*20}%)`;c.fillRect(x+Math.round((r()-.5)*28),y+Math.round((r()-.5)*28),2,2)}}}
-  }
-  for(const q of WLD.crit){q.cx=q.x+Math.cos(t*q.sp+q.ph)*q.R;q.cy=q.y+Math.sin(t*q.sp*1.3+q.ph)*q.R*.7;
-    critter(c,Math.round(q.cx-cx),Math.round(q.cy-cy-Math.abs(Math.sin(t*4+q.ph))*2),`hsl(${(H0+q.s*110+60)%360} 80% 60%)`,1)}
-  const px=Math.round(WLD.px-cx),py=Math.round(WLD.py-cy);c.fillStyle="#0007";c.fillRect(px-5,py-1,10,2);alien(c,AV[avSel],px-6,py-12,1);
-}
-function wLoop(ms){if(!WLD.on)return;const dt=Math.min(.05,(ms-(WLD.last||ms))/1000);WLD.last=ms;wUpdate(dt);wDraw(ms/1000);requestAnimationFrame(wLoop)}
-const KM={ArrowLeft:"l",a:"l",ArrowRight:"r",d:"r",ArrowUp:"u",w:"u",ArrowDown:"d",s:"d"};
-addEventListener("keydown",e=>{if(!WLD.on)return;const d=KM[e.key];if(d){WLD.keys[d]=1;e.preventDefault()}if(e.key==="e"||e.key===" "){plantLove();e.preventDefault()}if(e.key==="q")wScan()});
-addEventListener("keyup",e=>{const d=KM[e.key];if(d)WLD.keys[d]=0});
-document.querySelectorAll("#dpad button").forEach(b=>{const d=b.dataset.d;b.onpointerdown=e=>{e.preventDefault();WLD.keys[d]=1};["pointerup","pointerleave","pointercancel"].forEach(ev=>b["on"+ev]=()=>{WLD.keys[d]=0})});
-function showAv(){const row=$("avrow");row.textContent="";AV.forEach((a,i)=>{const c=document.createElement("canvas");c.width=c.height=72;
-  c.style.cssText="width:72px;height:72px;margin:4px;cursor:pointer;image-rendering:pixelated;border:2px solid "+(i===avSel?"var(--pink)":"transparent");
-  alien(c.getContext("2d"),a,0,0,6);c.onclick=()=>{avSel=i;showAv()};row.appendChild(c)});$("avp").classList.add("on")}
-$("avok").onclick=()=>{try{localStorage.setItem("cg_av",avSel)}catch(e){}$("avp").classList.remove("on")};
-$("wplant").onclick=plantLove; $("wscan").onclick=wScan; $("wav").onclick=showAv; $("wdex").onclick=showDex; $("dexBtn").onclick=showDex; $("dexc").onclick=()=>$("dex").classList.remove("on");
-$("wexit").onclick=()=>{WLD.on=false;clearInterval(WLD.iv);$("world").classList.remove("on")};
-$("enter2").onclick=()=>{if(current)openWorld(current)};
+$("dexBtn").onclick=showDex; $("dexc").onclick=()=>$("dex").classList.remove("on");
 
 /* ================= the gods: biblically accurate, and watching ================= */
 function eye(x,y,s,col,t,ph){
@@ -679,5 +578,6 @@ $("share").onclick=()=>{
   window.open(`https://github.com/${CFG.REPO}/issues/new?title=${encodeURIComponent("New star: "+current.name)}&labels=star&body=${encodeURIComponent(body)}`,"_blank");
 };
 </script>
+<script src="world.js"></script>
 </body>
 </html>

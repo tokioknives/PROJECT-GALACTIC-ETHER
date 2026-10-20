@@ -33,9 +33,14 @@ jobs:
           GEMINI_IMAGE_MODEL: ${{ vars.GEMINI_IMAGE_MODEL }}
           IMAGE_URL: ${{ secrets.IMAGE_URL }}
           IMAGE_AUTH: ${{ secrets.IMAGE_AUTH }}
+      - name: A god visits a world and leaves a gift
+        run: node scripts/gods-play.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_TEXT_MODEL: ${{ vars.GEMINI_TEXT_MODEL }}
       - name: Save to the universe
         run: |
           git config user.name "cyber-galaxy[bot]"
           git config user.email "actions@users.noreply.github.com"
-          git add -A universe.json stars
+          git add -A universe.json stars miracles.json
           git diff --cached --quiet || (git commit -m "a god made a world" && git pull --rebase && git push)
